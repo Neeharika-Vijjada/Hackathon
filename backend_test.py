@@ -767,9 +767,6 @@ class FindBuddyAPITester:
         # Print results
         print(f"\n📊 Tests passed: {self.tests_passed}/{self.tests_run}")
         return self.tests_passed == self.tests_run
-        # Print results
-        print(f"\n📊 Tests passed: {self.tests_passed}/{self.tests_run}")
-        return self.tests_passed == self.tests_run
 
 def main():
     tester = FindBuddyAPITester()
