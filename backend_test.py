@@ -689,6 +689,9 @@ class FindBuddyAPITester:
         
         sample_discounts_found = 0
         expected_discounts = [
+            "Golf with Friends",
+            "Free Cheesecake",
+            "Power Hour Game Cards",
             "Bring Your Buddy - Free Popcorn! 🍿",
             "Climb Together - 25% Off Day Passes! 🧗‍♀️",
             "Dinner for Friends - 20% Off Groups of 4+ 🍝"
