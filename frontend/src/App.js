@@ -98,29 +98,36 @@ const Header = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center py-4">
           <div className="flex items-center space-x-4">
-            <div className="flex items-center space-x-2">
-              <div className="w-10 h-10 bg-orange-400 rounded-full flex items-center justify-center text-white text-xl font-bold">
-                🧡
+            <div className="flex items-center space-x-3">
+              {/* Buddy Logo with Two Characters */}
+              <div className="flex items-center -space-x-2">
+                <div className="w-10 h-10 bg-blue-400 rounded-full flex items-center justify-center text-white text-lg font-bold shadow-lg border-2 border-white z-10">
+                  😊
+                </div>
+                <div className="w-10 h-10 bg-orange-400 rounded-full flex items-center justify-center text-white text-lg font-bold shadow-lg border-2 border-white">
+                  😄
+                </div>
               </div>
-              <h1 className="text-3xl font-bold text-white">FindBuddy</h1>
+              <div>
+                <h1 className="text-3xl font-bold text-white">FindBuddy</h1>
+                <p className="text-xs text-white opacity-80">Find your perfect buddy!</p>
+              </div>
             </div>
-            <p className="text-white opacity-90 hidden sm:block">
-              {userType === 'merchant' ? 'Business Partner Dashboard' : 'Find your perfect activity buddy!'}
-            </p>
           </div>
 
-          {/* Location Filter for Users */}
+          {/* Search Bar for Users */}
           {currentEntity && userType === 'user' && (
-            <div className="flex-1 max-w-sm mx-8">
-              <select className="w-full px-4 py-2 bg-white bg-opacity-90 border-0 rounded-full text-gray-700 focus:outline-none focus:ring-2 focus:ring-white focus:bg-white">
-                <option value="">📍 All Locations</option>
-                <option value="San Francisco">📍 San Francisco</option>
-                <option value="San Jose">📍 San Jose</option>
-                <option value="Palo Alto">📍 Palo Alto</option>
-                <option value="Mountain View">📍 Mountain View</option>
-                <option value="Fremont">📍 Fremont</option>
-                <option value="Santa Clara">📍 Santa Clara</option>
-              </select>
+            <div className="flex-1 max-w-lg mx-8">
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <span className="text-gray-400">🔍</span>
+                </div>
+                <input
+                  type="text"
+                  placeholder="Search activities, interests, or locations..."
+                  className="block w-full pl-10 pr-3 py-2 border-0 rounded-full leading-5 bg-white bg-opacity-90 placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-2 focus:ring-white focus:bg-white backdrop-blur-sm"
+                />
+              </div>
             </div>
           )}
 
