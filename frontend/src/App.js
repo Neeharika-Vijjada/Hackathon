@@ -1058,25 +1058,74 @@ const CreateActivityModal = ({ isOpen, onClose, onCreate }) => {
 
 const UserDashboard = () => {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState('around-me');
+  const [activeTab, setActiveTab] = useState('find-buddies');
   const [activitiesAroundMe, setActivitiesAroundMe] = useState([]);
+  const [filteredActivities, setFilteredActivities] = useState([]);
   const [merchants, setMerchants] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  
+  // Filter states
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedInterests, setSelectedInterests] = useState([]);
+  const [selectedCity, setSelectedCity] = useState('');
+  const [availableInterests, setAvailableInterests] = useState([]);
+  const [availableCities, setAvailableCities] = useState([]);
 
   useEffect(() => {
-    if (activeTab === 'around-me') {
+    if (activeTab === 'find-buddies') {
       fetchActivitiesAroundMe();
-    } else if (activeTab === 'merchants') {
+    } else if (activeTab === 'find-discounts') {
       fetchMerchants();
     }
   }, [activeTab]);
+
+  useEffect(() => {
+    // Apply filters to activities
+    let filtered = activitiesAroundMe;
+
+    if (searchTerm) {
+      filtered = filtered.filter(activity => 
+        activity.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        activity.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        activity.category.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+
+    if (selectedInterests.length > 0) {
+      filtered = filtered.filter(activity => 
+        activity.interests.some(interest => 
+          selectedInterests.includes(interest.toLowerCase())
+        )
+      );
+    }
+
+    if (selectedCity) {
+      filtered = filtered.filter(activity => 
+        activity.city.toLowerCase().includes(selectedCity.toLowerCase())
+      );
+    }
+
+    setFilteredActivities(filtered);
+  }, [activitiesAroundMe, searchTerm, selectedInterests, selectedCity]);
 
   const fetchActivitiesAroundMe = async () => {
     setLoading(true);
     try {
       const response = await axios.get(`${API}/activities/around-me`);
       setActivitiesAroundMe(response.data.activities);
+      
+      // Extract unique interests and cities for filters
+      const interests = new Set();
+      const cities = new Set();
+      
+      response.data.activities.forEach(activity => {
+        activity.interests.forEach(interest => interests.add(interest.toLowerCase()));
+        cities.add(activity.city);
+      });
+      
+      setAvailableInterests(Array.from(interests));
+      setAvailableCities(Array.from(cities));
     } catch (error) {
       console.error('Error fetching activities around me:', error);
     } finally {
@@ -1108,12 +1157,24 @@ const UserDashboard = () => {
 
   const handleCreateActivity = () => {
     setShowCreateModal(false);
-    // Refresh the appropriate tab data
-    if (activeTab === 'around-me') {
+    if (activeTab === 'find-buddies') {
       fetchActivitiesAroundMe();
     }
-    // Show success message
     alert('Activity created successfully!');
+  };
+
+  const handleInterestToggle = (interest) => {
+    setSelectedInterests(prev => 
+      prev.includes(interest) 
+        ? prev.filter(i => i !== interest)
+        : [...prev, interest]
+    );
+  };
+
+  const clearFilters = () => {
+    setSearchTerm('');
+    setSelectedInterests([]);
+    setSelectedCity('');
   };
 
   return (
@@ -1134,57 +1195,105 @@ const UserDashboard = () => {
               <div className="border-b border-gray-200">
                 <nav className="flex">
                   <button
-                    onClick={() => setActiveTab('around-me')}
+                    onClick={() => setActiveTab('find-buddies')}
                     className={`flex-1 py-4 px-6 text-center border-b-2 font-medium text-sm transition-colors ${
-                      activeTab === 'around-me'
+                      activeTab === 'find-buddies'
                         ? 'border-indigo-500 text-indigo-600 bg-indigo-50'
                         : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                     }`}
                   >
                     <div className="flex items-center justify-center space-x-2">
-                      <span>🌍</span>
-                      <span>Activities Around Me</span>
+                      <span>👥</span>
+                      <span>Find Buddies</span>
                     </div>
                   </button>
                   <button
-                    onClick={() => setActiveTab('merchants')}
+                    onClick={() => setActiveTab('find-discounts')}
                     className={`flex-1 py-4 px-6 text-center border-b-2 font-medium text-sm transition-colors ${
-                      activeTab === 'merchants'
+                      activeTab === 'find-discounts'
                         ? 'border-indigo-500 text-indigo-600 bg-indigo-50'
                         : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                     }`}
                   >
                     <div className="flex items-center justify-center space-x-2">
-                      <span>🏪</span>
-                      <span>Merchants</span>
+                      <span>💰</span>
+                      <span>Find Discounts</span>
                     </div>
                   </button>
                 </nav>
               </div>
             </div>
 
-            {/* Merchant Banner */}
-            {activeTab === 'merchants' && (
-              <div className="mb-8 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-lg p-6 text-white shadow-lg">
-                <div className="text-center">
-                  <h2 className="text-2xl font-bold mb-2">🎉 Bring Your Buddy & Save!</h2>
-                  <p className="text-lg opacity-90">
-                    Enjoy exclusive discounts when you visit with friends. The more buddies, the bigger the savings!
-                  </p>
-                  <div className="flex justify-center items-center mt-4 space-x-4">
-                    <div className="flex items-center">
-                      <span className="text-3xl mr-2">👥</span>
-                      <span className="text-sm">Group Discounts</span>
-                    </div>
-                    <div className="flex items-center">
-                      <span className="text-3xl mr-2">💰</span>
-                      <span className="text-sm">Special Offers</span>
-                    </div>
-                    <div className="flex items-center">
-                      <span className="text-3xl mr-2">🎁</span>
-                      <span className="text-sm">Buddy Rewards</span>
+            {/* Filters for Find Buddies Tab */}
+            {activeTab === 'find-buddies' && (
+              <div className="bg-white rounded-lg shadow-md p-4 mb-6">
+                <div className="flex flex-wrap gap-4">
+                  {/* Search Input */}
+                  <div className="flex-1 min-w-64">
+                    <input
+                      type="text"
+                      placeholder="Search activities..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    />
+                  </div>
+
+                  {/* City Filter */}
+                  <div className="min-w-48">
+                    <select
+                      value={selectedCity}
+                      onChange={(e) => setSelectedCity(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    >
+                      <option value="">All Cities</option>
+                      {availableCities.map((city, index) => (
+                        <option key={index} value={city}>{city}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Clear Filters */}
+                  <button
+                    onClick={clearFilters}
+                    className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-md transition-colors"
+                  >
+                    Clear Filters
+                  </button>
+                </div>
+
+                {/* Interest Tags */}
+                {availableInterests.length > 0 && (
+                  <div className="mt-4">
+                    <p className="text-sm text-gray-600 mb-2">Filter by interests:</p>
+                    <div className="flex flex-wrap gap-2">
+                      {availableInterests.slice(0, 10).map((interest, index) => (
+                        <button
+                          key={index}
+                          onClick={() => handleInterestToggle(interest)}
+                          className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                            selectedInterests.includes(interest)
+                              ? 'bg-indigo-500 text-white'
+                              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                          }`}
+                        >
+                          {interest}
+                        </button>
+                      ))}
                     </div>
                   </div>
+                )}
+              </div>
+            )}
+
+            {/* Improved Merchant Banner */}
+            {activeTab === 'find-discounts' && (
+              <div className="mb-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg p-6 text-white shadow-lg">
+                <div className="text-center">
+                  <h2 className="text-2xl font-bold mb-2">👥 Bring Your Buddy & Enjoy Extra Discounts!</h2>
+                  <p className="text-lg opacity-90">
+                    Save more when you visit with friends - exclusive buddy discounts await!
+                  </p>
                 </div>
               </div>
             )}
@@ -1197,20 +1306,32 @@ const UserDashboard = () => {
               </div>
             ) : (
               <div>
-                {activeTab === 'around-me' && (
+                {activeTab === 'find-buddies' && (
                   <div>
                     <div className="flex justify-between items-center mb-6">
                       <h3 className="text-2xl font-bold text-gray-900">Professional Network Activities</h3>
-                      <span className="text-sm text-gray-500">{activitiesAroundMe.length} activities found</span>
+                      <span className="text-sm text-gray-500">
+                        {filteredActivities.length} of {activitiesAroundMe.length} activities
+                      </span>
                     </div>
-                    {activitiesAroundMe.length === 0 ? (
+                    {filteredActivities.length === 0 ? (
                       <div className="text-center py-12 bg-white rounded-lg shadow-md">
-                        <p className="text-gray-600 text-lg">No activities found in your area.</p>
-                        <p className="text-gray-500">Be the first to create a professional networking activity!</p>
+                        <p className="text-gray-600 text-lg">
+                          {activitiesAroundMe.length === 0 
+                            ? "No activities found in your area." 
+                            : "No activities match your current filters."
+                          }
+                        </p>
+                        <p className="text-gray-500">
+                          {activitiesAroundMe.length === 0 
+                            ? "Be the first to create a professional networking activity!" 
+                            : "Try adjusting your search criteria."
+                          }
+                        </p>
                       </div>
                     ) : (
                       <div className="space-y-6">
-                        {activitiesAroundMe.map((activity) => (
+                        {filteredActivities.map((activity) => (
                           <ActivityCard
                             key={activity.id}
                             activity={activity}
@@ -1223,7 +1344,7 @@ const UserDashboard = () => {
                   </div>
                 )}
 
-                {activeTab === 'merchants' && (
+                {activeTab === 'find-discounts' && (
                   <div>
                     <div className="flex justify-between items-center mb-6">
                       <h3 className="text-2xl font-bold text-gray-900">Buddy Discounts in {user.city}</h3>
