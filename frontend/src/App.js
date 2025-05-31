@@ -100,17 +100,17 @@ const Header = () => {
           <div className="flex items-center space-x-4">
             <div className="flex items-center space-x-3">
               {/* Buddy Logo with Two Characters */}
-              <div className="flex items-center -space-x-2">
-                <div className="w-10 h-10 bg-blue-400 rounded-full flex items-center justify-center text-white text-lg font-bold shadow-lg border-2 border-white z-10">
-                  😊
+              <div className="flex items-center -space-x-1 bg-white bg-opacity-20 rounded-full p-1 backdrop-blur-sm">
+                <div className="w-9 h-9 bg-gradient-to-br from-pink-400 to-pink-500 rounded-full flex items-center justify-center text-white text-sm font-bold shadow-lg border-2 border-white z-10">
+                  🐱
                 </div>
-                <div className="w-10 h-10 bg-orange-400 rounded-full flex items-center justify-center text-white text-lg font-bold shadow-lg border-2 border-white">
-                  😄
+                <div className="w-9 h-9 bg-gradient-to-br from-blue-400 to-blue-500 rounded-full flex items-center justify-center text-white text-sm font-bold shadow-lg border-2 border-white">
+                  🐶
                 </div>
               </div>
               <div>
                 <h1 className="text-3xl font-bold text-white">FindBuddy</h1>
-                <p className="text-xs text-white opacity-80">Find your perfect buddy!</p>
+                <p className="text-xs text-white opacity-80">Connect • Explore • Have Fun!</p>
               </div>
             </div>
           </div>
