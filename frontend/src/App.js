@@ -873,6 +873,7 @@ const CreateActivityModal = ({ isOpen, onClose, onCreate }) => {
     interests: ''
   });
   const [loading, setLoading] = useState(false);
+  const { user } = useAuth();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -883,10 +884,14 @@ const CreateActivityModal = ({ isOpen, onClose, onCreate }) => {
         ...formData,
         date: new Date(formData.date).toISOString(),
         max_participants: formData.max_participants ? parseInt(formData.max_participants) : null,
-        interests: formData.interests.split(',').map(i => i.trim()).filter(i => i)
+        interests: formData.interests.split(',').map(i => i.trim()).filter(i => i),
+        city: formData.city || user.city // Use user's city if not specified
       };
 
-      await axios.post(`${API}/activities`, payload);
+      console.log('Creating activity with payload:', payload);
+      const response = await axios.post(`${API}/activities`, payload);
+      console.log('Activity created successfully:', response.data);
+      
       onCreate();
       onClose();
       setFormData({
@@ -901,6 +906,7 @@ const CreateActivityModal = ({ isOpen, onClose, onCreate }) => {
       });
     } catch (error) {
       console.error('Error creating activity:', error);
+      alert(`Error creating activity: ${error.response?.data?.detail || error.message}`);
     } finally {
       setLoading(false);
     }
@@ -909,6 +915,13 @@ const CreateActivityModal = ({ isOpen, onClose, onCreate }) => {
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
+
+  // Set default city to user's city when modal opens
+  useEffect(() => {
+    if (isOpen && user?.city && !formData.city) {
+      setFormData(prev => ({ ...prev, city: user.city }));
+    }
+  }, [isOpen, user?.city]);
 
   if (!isOpen) return null;
 
@@ -925,7 +938,7 @@ const CreateActivityModal = ({ isOpen, onClose, onCreate }) => {
             <input
               type="text"
               name="title"
-              placeholder="Activity Title"
+              placeholder="Activity Title (e.g., Tech Networking Event)"
               value={formData.title}
               onChange={handleChange}
               required
@@ -933,11 +946,11 @@ const CreateActivityModal = ({ isOpen, onClose, onCreate }) => {
             />
             <textarea
               name="description"
-              placeholder="Activity Description"
+              placeholder="Describe your professional activity or networking event..."
               value={formData.description}
               onChange={handleChange}
               required
-              rows="3"
+              rows="4"
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
             <input
@@ -946,12 +959,13 @@ const CreateActivityModal = ({ isOpen, onClose, onCreate }) => {
               value={formData.date}
               onChange={handleChange}
               required
+              min={new Date().toISOString().slice(0, 16)}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
             <input
               type="text"
               name="location"
-              placeholder="Location/Venue"
+              placeholder="Venue/Location"
               value={formData.location}
               onChange={handleChange}
               required
@@ -966,27 +980,37 @@ const CreateActivityModal = ({ isOpen, onClose, onCreate }) => {
               required
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
-            <input
-              type="text"
+            <select
               name="category"
-              placeholder="Category (e.g., Sports, Food, Music)"
               value={formData.category}
               onChange={handleChange}
               required
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            />
+            >
+              <option value="">Select Category</option>
+              <option value="Professional">Professional Networking</option>
+              <option value="Business">Business & Entrepreneurship</option>
+              <option value="Technology">Technology & Innovation</option>
+              <option value="Education">Education & Workshops</option>
+              <option value="Leadership">Leadership & Management</option>
+              <option value="Sales">Sales & Marketing</option>
+              <option value="Design">Design & Creative</option>
+              <option value="Finance">Finance & Investment</option>
+              <option value="Other">Other</option>
+            </select>
             <input
               type="number"
               name="max_participants"
               placeholder="Max Participants (optional)"
               value={formData.max_participants}
               onChange={handleChange}
+              min="1"
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
             <input
               type="text"
               name="interests"
-              placeholder="Related Interests (comma separated)"
+              placeholder="Related interests (comma separated: networking, technology, career)"
               value={formData.interests}
               onChange={handleChange}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
