@@ -94,40 +94,46 @@ const Header = () => {
   const currentEntity = user || merchant;
 
   return (
-    <header className="bg-white shadow-lg border-b border-gray-200 fixed top-0 left-0 right-0 z-50">
+    <header className="bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600 shadow-lg border-b border-gray-200 fixed top-0 left-0 right-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center py-4">
           <div className="flex items-center space-x-4">
-            <h1 className="text-3xl font-bold text-indigo-600">FindBuddy</h1>
-            <p className="text-gray-500 hidden sm:block">
-              {userType === 'merchant' ? 'Business Partner Dashboard' : 'Find your activity companions'}
+            <div className="flex items-center space-x-2">
+              <div className="w-10 h-10 bg-orange-400 rounded-full flex items-center justify-center text-white text-xl font-bold">
+                🧡
+              </div>
+              <h1 className="text-3xl font-bold text-white">FindBuddy</h1>
+            </div>
+            <p className="text-white opacity-90 hidden sm:block">
+              {userType === 'merchant' ? 'Business Partner Dashboard' : 'Find your perfect activity buddy!'}
             </p>
           </div>
 
-          {/* Search Bar */}
+          {/* Location Filter for Users */}
           {currentEntity && userType === 'user' && (
-            <div className="flex-1 max-w-lg mx-8">
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <span className="text-gray-400">🔍</span>
-                </div>
-                <input
-                  type="text"
-                  placeholder="Search activities, interests, or locations..."
-                  className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                />
-              </div>
+            <div className="flex-1 max-w-sm mx-8">
+              <select className="w-full px-4 py-2 bg-white bg-opacity-90 border-0 rounded-full text-gray-700 focus:outline-none focus:ring-2 focus:ring-white focus:bg-white">
+                <option value="">📍 All Locations</option>
+                <option value="San Francisco">📍 San Francisco</option>
+                <option value="San Jose">📍 San Jose</option>
+                <option value="Palo Alto">📍 Palo Alto</option>
+                <option value="Mountain View">📍 Mountain View</option>
+                <option value="Fremont">📍 Fremont</option>
+                <option value="Santa Clara">📍 Santa Clara</option>
+              </select>
             </div>
           )}
 
           {currentEntity && (
             <div className="flex items-center space-x-4">
-              <span className="text-gray-700">
-                Welcome, {userType === 'merchant' ? merchant?.business_name : user?.name}!
-              </span>
+              <div className="text-white">
+                <span className="font-medium">
+                  👋 {userType === 'merchant' ? merchant?.business_name : user?.name}
+                </span>
+              </div>
               <button
                 onClick={logout}
-                className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition-colors"
+                className="bg-white bg-opacity-20 hover:bg-opacity-30 text-white px-4 py-2 rounded-full transition-all duration-300 backdrop-blur-sm"
               >
                 Logout
               </button>
