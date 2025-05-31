@@ -1181,103 +1181,94 @@ const UserDashboard = () => {
 
           {/* Main Content */}
           <div className="flex-1">
-            {/* Navigation Tabs with Location Filter */}
-            <div className="bg-white rounded-2xl shadow-lg mb-8 sticky top-24 z-10 overflow-hidden border border-gray-100">
+            {/* Main Navigation Tabs */}
+            <div className="bg-white rounded-2xl shadow-lg mb-6 overflow-hidden border border-gray-100">
               <div className="border-b border-gray-200">
-                <div className="flex justify-between items-center">
-                  <nav className="flex">
-                    <button
-                      onClick={() => setActiveTab('find-buddies')}
-                      className={`flex-1 py-4 px-6 text-center border-b-2 font-bold text-sm transition-all duration-300 ${
-                        activeTab === 'find-buddies'
-                          ? 'border-pink-500 text-pink-600 bg-gradient-to-r from-pink-50 to-purple-50'
-                          : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 hover:bg-gray-50'
-                      }`}
-                    >
-                      <div className="flex items-center justify-center space-x-2">
-                        <span className="text-lg">👫</span>
-                        <span>Find Buddies</span>
-                      </div>
-                    </button>
-                    <button
-                      onClick={() => setActiveTab('find-discounts')}
-                      className={`flex-1 py-4 px-6 text-center border-b-2 font-bold text-sm transition-all duration-300 ${
-                        activeTab === 'find-discounts'
-                          ? 'border-orange-500 text-orange-600 bg-gradient-to-r from-orange-50 to-yellow-50'
-                          : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 hover:bg-gray-50'
-                      }`}
-                    >
-                      <div className="flex items-center justify-center space-x-2">
-                        <span className="text-lg">🎁</span>
-                        <span>Find Discounts</span>
-                      </div>
-                    </button>
-                  </nav>
-                  
-                  {/* Small Location Filter in Right Corner */}
-                  {(activeTab === 'find-buddies' || activeTab === 'find-discounts') && (
-                    <div className="flex items-center space-x-2 mr-4">
-                      <label className="text-sm text-gray-500">📍</label>
-                      <select
-                        value={locationFilter}
-                        onChange={(e) => {
-                          setLocationFilter(e.target.value);
-                          setTimeout(() => {
-                            if (activeTab === 'find-buddies') {
-                              fetchActivitiesAroundMe();
-                            } else if (activeTab === 'find-discounts') {
-                              fetchMerchants();
-                            }
-                          }, 100);
-                        }}
-                        className="text-xs border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                      >
-                        <option value={user.city}>My City</option>
-                        <option value="New York">New York</option>
-                        <option value="Los Angeles">Los Angeles</option>
-                        <option value="Chicago">Chicago</option>
-                        <option value="Houston">Houston</option>
-                        <option value="Phoenix">Phoenix</option>
-                        <option value="Philadelphia">Philadelphia</option>
-                        <option value="San Antonio">San Antonio</option>
-                        <option value="San Diego">San Diego</option>
-                        <option value="Dallas">Dallas</option>
-                        <option value="San Jose">San Jose</option>
-                      </select>
+                <nav className="flex">
+                  <button
+                    onClick={() => setActiveTab('find-buddies')}
+                    className={`flex-1 py-4 px-6 text-center border-b-2 font-bold text-sm transition-all duration-300 ${
+                      activeTab === 'find-buddies'
+                        ? 'border-pink-500 text-pink-600 bg-gradient-to-r from-pink-50 to-purple-50'
+                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 hover:bg-gray-50'
+                    }`}
+                  >
+                    <div className="flex items-center justify-center space-x-2">
+                      <span className="text-lg">👫</span>
+                      <span>Find Buddies</span>
                     </div>
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('find-discounts')}
+                    className={`flex-1 py-4 px-6 text-center border-b-2 font-bold text-sm transition-all duration-300 ${
+                      activeTab === 'find-discounts'
+                        ? 'border-orange-500 text-orange-600 bg-gradient-to-r from-orange-50 to-yellow-50'
+                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 hover:bg-gray-50'
+                    }`}
+                  >
+                    <div className="flex items-center justify-center space-x-2">
+                      <span className="text-lg">🎁</span>
+                      <span>Find Discounts</span>
+                    </div>
+                  </button>
+                </nav>
+              </div>
+            </div>
+
+            {/* Single Location Filter */}
+            <div className="bg-white rounded-2xl shadow-lg p-4 mb-6 border border-gray-100">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <span className="text-xl">📍</span>
+                  <h4 className="text-sm font-semibold text-gray-700">Location</h4>
+                </div>
+                <div className="flex items-center space-x-3">
+                  <select
+                    value={locationFilter}
+                    onChange={(e) => {
+                      setLocationFilter(e.target.value);
+                      setTimeout(() => {
+                        if (activeTab === 'find-buddies') {
+                          fetchActivitiesAroundMe();
+                        } else if (activeTab === 'find-discounts') {
+                          fetchMerchants();
+                        }
+                      }, 100);
+                    }}
+                    className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-pink-500"
+                  >
+                    <option value={user.city}>My City ({user.city})</option>
+                    <option value="New York">New York</option>
+                    <option value="Los Angeles">Los Angeles</option>
+                    <option value="Chicago">Chicago</option>
+                    <option value="Houston">Houston</option>
+                    <option value="Phoenix">Phoenix</option>
+                    <option value="Philadelphia">Philadelphia</option>
+                    <option value="San Antonio">San Antonio</option>
+                    <option value="San Diego">San Diego</option>
+                    <option value="Dallas">Dallas</option>
+                    <option value="San Jose">San Jose</option>
+                  </select>
+                  {locationFilter !== user.city && (
+                    <button
+                      onClick={() => {
+                        setLocationFilter(user.city);
+                        setTimeout(() => {
+                          if (activeTab === 'find-buddies') {
+                            fetchActivitiesAroundMe();
+                          } else if (activeTab === 'find-discounts') {
+                            fetchMerchants();
+                          }
+                        }, 100);
+                      }}
+                      className="px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors text-sm font-medium"
+                    >
+                      Reset
+                    </button>
                   )}
                 </div>
               </div>
             </div>
-
-            {/* Location Filter for Find Buddies */}
-            {activeTab === 'find-buddies' && (
-              <div className="bg-white rounded-2xl shadow-lg p-6 mb-6 border border-gray-100">
-                <div className="flex flex-wrap items-center gap-4">
-                  <div className="flex items-center space-x-3">
-                    <span className="text-2xl">🗺️</span>
-                    <h4 className="text-lg font-bold text-gray-900">Filter by Location</h4>
-                  </div>
-                  <div className="flex-1 max-w-sm">
-                    <select
-                      value={selectedLocationBuddies}
-                      onChange={(e) => setSelectedLocationBuddies(e.target.value)}
-                      className="w-full px-4 py-3 bg-gradient-to-r from-pink-50 to-purple-50 border-2 border-pink-200 rounded-full text-gray-700 font-medium focus:outline-none focus:ring-2 focus:ring-pink-400 focus:border-pink-400 transition-all duration-300"
-                    >
-                      {locationOptions.map((option) => (
-                        <option key={option.value} value={option.value}>
-                          {option.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  {selectedLocationBuddies && (
-                    <button
-                      onClick={() => setSelectedLocationBuddies('')}
-                      className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-full transition-colors font-medium"
-                    >
-                      Clear Filter
-                    </button>
                   )}
                 </div>
               </div>
