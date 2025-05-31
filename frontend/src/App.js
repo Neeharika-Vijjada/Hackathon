@@ -123,52 +123,153 @@ const Header = () => {
 };
 
 const UserProfileSidebar = ({ user, onCreateActivity }) => {
+  const [myActivities, setMyActivities] = useState({ created: [], joined: [] });
+  const [loadingActivities, setLoadingActivities] = useState(false);
+
+  useEffect(() => {
+    fetchMyActivities();
+  }, []);
+
+  const fetchMyActivities = async () => {
+    setLoadingActivities(true);
+    try {
+      const response = await axios.get(`${API}/activities/my`);
+      setMyActivities({
+        created: response.data.created_activities,
+        joined: response.data.joined_activities
+      });
+    } catch (error) {
+      console.error('Error fetching my activities:', error);
+    } finally {
+      setLoadingActivities(false);
+    }
+  };
+
   return (
-    <div className="bg-white rounded-lg shadow-md p-6 sticky top-24">
-      <div className="text-center mb-6">
-        <div className="w-20 h-20 bg-indigo-500 rounded-full flex items-center justify-center text-white text-2xl font-bold mx-auto mb-4">
-          {user.name.charAt(0)}
+    <div className="space-y-6">
+      {/* User Profile Card */}
+      <div className="bg-white rounded-lg shadow-md p-6 sticky top-24">
+        <div className="text-center mb-6">
+          <div className="w-20 h-20 bg-indigo-500 rounded-full flex items-center justify-center text-white text-2xl font-bold mx-auto mb-4">
+            {user.name.charAt(0)}
+          </div>
+          <h2 className="text-xl font-bold text-gray-900">{user.name}</h2>
+          <p className="text-gray-600">{user.city}</p>
+          {user.bio && <p className="text-gray-600 text-sm mt-2">{user.bio}</p>}
         </div>
-        <h2 className="text-xl font-bold text-gray-900">{user.name}</h2>
-        <p className="text-gray-600">{user.city}</p>
-        {user.bio && <p className="text-gray-600 text-sm mt-2">{user.bio}</p>}
+
+        {user.interests && user.interests.length > 0 && (
+          <div className="mb-6">
+            <h3 className="text-sm font-semibold text-gray-900 mb-2">Interests</h3>
+            <div className="flex flex-wrap gap-1">
+              {user.interests.map((interest, index) => (
+                <span key={index} className="bg-indigo-100 text-indigo-800 px-2 py-1 rounded text-xs">
+                  {interest}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div className="space-y-3">
+          <button
+            onClick={onCreateActivity}
+            className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-3 px-4 rounded-lg transition-colors flex items-center justify-center space-x-2"
+          >
+            <span>➕</span>
+            <span>Create Activity</span>
+          </button>
+          
+          <div className="bg-gray-50 rounded-lg p-4">
+            <h4 className="text-sm font-semibold text-gray-900 mb-2">Quick Stats</h4>
+            <div className="space-y-1 text-sm text-gray-600">
+              <div className="flex justify-between">
+                <span>Member since:</span>
+                <span>{new Date(user.created_at).toLocaleDateString()}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>City:</span>
+                <span>{user.city}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Activities Created:</span>
+                <span>{myActivities.created.length}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Activities Joined:</span>
+                <span>{myActivities.joined.length}</span>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
-      {user.interests && user.interests.length > 0 && (
-        <div className="mb-6">
-          <h3 className="text-sm font-semibold text-gray-900 mb-2">Interests</h3>
-          <div className="flex flex-wrap gap-1">
-            {user.interests.map((interest, index) => (
-              <span key={index} className="bg-indigo-100 text-indigo-800 px-2 py-1 rounded text-xs">
-                {interest}
-              </span>
-            ))}
-          </div>
-        </div>
-      )}
-
-      <div className="space-y-3">
-        <button
-          onClick={onCreateActivity}
-          className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-3 px-4 rounded-lg transition-colors flex items-center justify-center space-x-2"
-        >
-          <span>➕</span>
-          <span>Create Activity</span>
-        </button>
+      {/* My Activities Section */}
+      <div className="bg-white rounded-lg shadow-md p-6">
+        <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
+          <span className="mr-2">📅</span>
+          My Activities
+        </h3>
         
-        <div className="bg-gray-50 rounded-lg p-4">
-          <h4 className="text-sm font-semibold text-gray-900 mb-2">Quick Stats</h4>
-          <div className="space-y-1 text-sm text-gray-600">
-            <div className="flex justify-between">
-              <span>Member since:</span>
-              <span>{new Date(user.created_at).toLocaleDateString()}</span>
+        {loadingActivities ? (
+          <div className="text-center py-4">
+            <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-600"></div>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {/* Created Activities */}
+            <div>
+              <h4 className="text-sm font-semibold text-gray-700 mb-2">
+                Organizing ({myActivities.created.length})
+              </h4>
+              {myActivities.created.length === 0 ? (
+                <p className="text-xs text-gray-500">No activities created yet</p>
+              ) : (
+                <div className="space-y-2">
+                  {myActivities.created.slice(0, 3).map((activity) => (
+                    <div key={activity.id} className="bg-blue-50 p-3 rounded border-l-4 border-blue-400">
+                      <h5 className="text-sm font-medium text-blue-900 leading-tight">
+                        {activity.title.length > 50 ? activity.title.substring(0, 50) + '...' : activity.title}
+                      </h5>
+                      <p className="text-xs text-blue-600 mt-1">
+                        {new Date(activity.date).toLocaleDateString()} • {activity.participants.length} attending
+                      </p>
+                    </div>
+                  ))}
+                  {myActivities.created.length > 3 && (
+                    <p className="text-xs text-gray-500">+{myActivities.created.length - 3} more</p>
+                  )}
+                </div>
+              )}
             </div>
-            <div className="flex justify-between">
-              <span>City:</span>
-              <span>{user.city}</span>
+
+            {/* Joined Activities */}
+            <div>
+              <h4 className="text-sm font-semibold text-gray-700 mb-2">
+                Attending ({myActivities.joined.length})
+              </h4>
+              {myActivities.joined.length === 0 ? (
+                <p className="text-xs text-gray-500">No activities joined yet</p>
+              ) : (
+                <div className="space-y-2">
+                  {myActivities.joined.slice(0, 3).map((activity) => (
+                    <div key={activity.id} className="bg-green-50 p-3 rounded border-l-4 border-green-400">
+                      <h5 className="text-sm font-medium text-green-900 leading-tight">
+                        {activity.title.length > 50 ? activity.title.substring(0, 50) + '...' : activity.title}
+                      </h5>
+                      <p className="text-xs text-green-600 mt-1">
+                        {new Date(activity.date).toLocaleDateString()} • by {activity.creator_name}
+                      </p>
+                    </div>
+                  ))}
+                  {myActivities.joined.length > 3 && (
+                    <p className="text-xs text-gray-500">+{myActivities.joined.length - 3} more</p>
+                  )}
+                </div>
+              )}
             </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );
