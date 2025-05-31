@@ -207,10 +207,49 @@ class FindBuddyAPITester:
             self.token = original_token
             self.user = original_user
             return False
+        
+        # Store second user's token
+        second_user_token = self.token
+        
+        # Restore original user to create a new activity
+        self.token = original_token
+        self.user = original_user
+        
+        # Create a new activity for the second user to join
+        tomorrow = datetime.now() + timedelta(days=1)
+        activity_data = {
+            "title": "Test Activity for Joining",
+            "description": "This is a test activity for the second user to join",
+            "date": tomorrow.isoformat(),
+            "location": "Test Location",
+            "city": "Test City",
+            "category": "Testing",
+            "max_participants": 10,
+            "interests": ["testing", "coding", "api"]
+        }
+        
+        success, response = self.run_test(
+            "Create Activity for Joining",
+            "POST",
+            "activities",
+            200,
+            data=activity_data
+        )
+        
+        if not success or 'activity' not in response:
+            # Restore original token and user
+            self.token = original_token
+            self.user = original_user
+            return False
             
+        activity_id_to_join = response['activity']['id']
+        
+        # Switch to second user
+        self.token = second_user_token
+        
         # Now join the activity with the second user
         join_data = {
-            "activity_id": self.test_activity_id
+            "activity_id": activity_id_to_join
         }
         
         success, response = self.run_test(
@@ -222,7 +261,7 @@ class FindBuddyAPITester:
         )
         
         if success:
-            print(f"Successfully joined activity: {self.test_activity_id}")
+            print(f"Successfully joined activity: {activity_id_to_join}")
         
         # Restore original token and user
         self.token = original_token
