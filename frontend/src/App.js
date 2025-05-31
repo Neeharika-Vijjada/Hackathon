@@ -1429,6 +1429,7 @@ const UserDashboard = () => {
         onCreate={handleCreateActivity}
       />
     </div>
+    </>
   );
 };
 
