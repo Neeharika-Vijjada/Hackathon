@@ -168,28 +168,37 @@ const UserProfileSidebar = ({ user, onCreateActivity }) => {
     }
   };
 
+  const avatarColors = ['bg-pink-400', 'bg-blue-400', 'bg-green-400', 'bg-yellow-400', 'bg-purple-400', 'bg-orange-400'];
+  const userAvatarColor = avatarColors[user.name.charCodeAt(0) % avatarColors.length];
+
   return (
     <div className="space-y-6">
       {/* User Profile Card */}
-      <div className="bg-white rounded-lg shadow-md p-6 sticky top-24">
+      <div className="bg-white rounded-2xl shadow-lg p-6 sticky top-24 border-l-4 border-cyan-400">
         <div className="text-center mb-6">
-          <div className="w-20 h-20 bg-indigo-500 rounded-full flex items-center justify-center text-white text-2xl font-bold mx-auto mb-4">
+          <div className={`w-20 h-20 ${userAvatarColor} rounded-full flex items-center justify-center text-white text-2xl font-bold mx-auto mb-4 shadow-lg`}>
             {user.name.charAt(0)}
           </div>
           <h2 className="text-xl font-bold text-gray-900">{user.name}</h2>
-          <p className="text-gray-600">{user.city}</p>
+          <p className="text-purple-600 font-medium">{user.city}</p>
           {user.bio && <p className="text-gray-600 text-sm mt-2">{user.bio}</p>}
         </div>
 
         {user.interests && user.interests.length > 0 && (
           <div className="mb-6">
-            <h3 className="text-sm font-semibold text-gray-900 mb-2">Interests</h3>
+            <h3 className="text-sm font-semibold text-gray-900 mb-2 flex items-center">
+              <span className="mr-2">🎯</span>Interests
+            </h3>
             <div className="flex flex-wrap gap-1">
-              {user.interests.map((interest, index) => (
-                <span key={index} className="bg-indigo-100 text-indigo-800 px-2 py-1 rounded text-xs">
-                  {interest}
-                </span>
-              ))}
+              {user.interests.map((interest, index) => {
+                const tagColors = ['bg-pink-100 text-pink-800', 'bg-blue-100 text-blue-800', 'bg-green-100 text-green-800', 'bg-yellow-100 text-yellow-800', 'bg-purple-100 text-purple-800'];
+                const tagColor = tagColors[index % tagColors.length];
+                return (
+                  <span key={index} className={`${tagColor} px-2 py-1 rounded-full text-xs font-medium`}>
+                    {interest}
+                  </span>
+                );
+              })}
             </div>
           </div>
         )}
@@ -197,30 +206,32 @@ const UserProfileSidebar = ({ user, onCreateActivity }) => {
         <div className="space-y-3">
           <button
             onClick={onCreateActivity}
-            className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-3 px-4 rounded-lg transition-colors flex items-center justify-center space-x-2"
+            className="w-full bg-gradient-to-r from-orange-400 to-pink-500 hover:from-orange-500 hover:to-pink-600 text-white font-bold py-3 px-4 rounded-full transition-all duration-300 transform hover:scale-105 shadow-lg flex items-center justify-center space-x-2"
           >
-            <span>➕</span>
+            <span>✨</span>
             <span>Create Activity</span>
           </button>
           
-          <div className="bg-gray-50 rounded-lg p-4">
-            <h4 className="text-sm font-semibold text-gray-900 mb-2">Quick Stats</h4>
+          <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-xl p-4 border border-blue-200">
+            <h4 className="text-sm font-semibold text-gray-900 mb-2 flex items-center">
+              <span className="mr-2">📊</span>My Stats
+            </h4>
             <div className="space-y-1 text-sm text-gray-600">
               <div className="flex justify-between">
                 <span>Member since:</span>
-                <span>{new Date(user.created_at).toLocaleDateString()}</span>
+                <span className="font-medium">{new Date(user.created_at).toLocaleDateString()}</span>
               </div>
               <div className="flex justify-between">
-                <span>City:</span>
-                <span>{user.city}</span>
+                <span>Location:</span>
+                <span className="font-medium">{user.city}</span>
               </div>
               <div className="flex justify-between">
                 <span>Activities Created:</span>
-                <span>{myActivities.created.length}</span>
+                <span className="font-medium text-orange-600">{myActivities.created.length}</span>
               </div>
               <div className="flex justify-between">
                 <span>Activities Joined:</span>
-                <span>{myActivities.joined.length}</span>
+                <span className="font-medium text-green-600">{myActivities.joined.length}</span>
               </div>
             </div>
           </div>
@@ -228,21 +239,22 @@ const UserProfileSidebar = ({ user, onCreateActivity }) => {
       </div>
 
       {/* My Activities Section */}
-      <div className="bg-white rounded-lg shadow-md p-6">
+      <div className="bg-white rounded-2xl shadow-lg p-6 border-l-4 border-pink-400">
         <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
-          <span className="mr-2">📅</span>
+          <span className="mr-2">🎪</span>
           My Activities
         </h3>
         
         {loadingActivities ? (
           <div className="text-center py-4">
-            <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-600"></div>
+            <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-purple-500"></div>
           </div>
         ) : (
           <div className="space-y-4">
             {/* Created Activities */}
             <div>
-              <h4 className="text-sm font-semibold text-gray-700 mb-2">
+              <h4 className="text-sm font-semibold text-gray-700 mb-2 flex items-center">
+                <span className="mr-1">🎯</span>
                 Organizing ({myActivities.created.length})
               </h4>
               {myActivities.created.length === 0 ? (
@@ -250,12 +262,13 @@ const UserProfileSidebar = ({ user, onCreateActivity }) => {
               ) : (
                 <div className="space-y-2">
                   {myActivities.created.slice(0, 3).map((activity) => (
-                    <div key={activity.id} className="bg-blue-50 p-3 rounded border-l-4 border-blue-400">
-                      <h5 className="text-sm font-medium text-blue-900 leading-tight">
+                    <div key={activity.id} className="bg-gradient-to-r from-orange-50 to-yellow-50 p-3 rounded-xl border-l-4 border-orange-400">
+                      <h5 className="text-sm font-medium text-orange-900 leading-tight">
                         {activity.title.length > 50 ? activity.title.substring(0, 50) + '...' : activity.title}
                       </h5>
-                      <p className="text-xs text-blue-600 mt-1">
-                        {new Date(activity.date).toLocaleDateString()} • {activity.participants.length} attending
+                      <p className="text-xs text-orange-600 mt-1 flex items-center">
+                        <span className="mr-1">📅</span>
+                        {new Date(activity.date).toLocaleDateString()} • {activity.participants.length} buddies
                       </p>
                     </div>
                   ))}
@@ -268,7 +281,8 @@ const UserProfileSidebar = ({ user, onCreateActivity }) => {
 
             {/* Joined Activities */}
             <div>
-              <h4 className="text-sm font-semibold text-gray-700 mb-2">
+              <h4 className="text-sm font-semibold text-gray-700 mb-2 flex items-center">
+                <span className="mr-1">🤝</span>
                 Attending ({myActivities.joined.length})
               </h4>
               {myActivities.joined.length === 0 ? (
@@ -276,11 +290,12 @@ const UserProfileSidebar = ({ user, onCreateActivity }) => {
               ) : (
                 <div className="space-y-2">
                   {myActivities.joined.slice(0, 3).map((activity) => (
-                    <div key={activity.id} className="bg-green-50 p-3 rounded border-l-4 border-green-400">
+                    <div key={activity.id} className="bg-gradient-to-r from-green-50 to-blue-50 p-3 rounded-xl border-l-4 border-green-400">
                       <h5 className="text-sm font-medium text-green-900 leading-tight">
                         {activity.title.length > 50 ? activity.title.substring(0, 50) + '...' : activity.title}
                       </h5>
-                      <p className="text-xs text-green-600 mt-1">
+                      <p className="text-xs text-green-600 mt-1 flex items-center">
+                        <span className="mr-1">📅</span>
                         {new Date(activity.date).toLocaleDateString()} • by {activity.creator_name}
                       </p>
                     </div>
