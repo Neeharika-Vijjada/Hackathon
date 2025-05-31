@@ -495,6 +495,205 @@ class FindBuddyAPITester:
         
         return success
 
+    def test_like_activity(self):
+        """Test liking an activity"""
+        if not self.test_activity_id:
+            print("❌ No activity ID available to like")
+            return False
+        
+        success, response = self.run_test(
+            "Like Activity",
+            "POST",
+            f"activities/{self.test_activity_id}/like",
+            200
+        )
+        
+        if success:
+            liked = response.get('liked', False)
+            like_count = response.get('like_count', 0)
+            print(f"Activity liked status: {liked}, Like count: {like_count}")
+            
+            # Test getting likes for the activity
+            success_get, likes_response = self.run_test(
+                "Get Activity Likes",
+                "GET",
+                f"activities/{self.test_activity_id}/likes",
+                200
+            )
+            
+            if success_get:
+                likes = likes_response.get('likes', [])
+                like_count_get = likes_response.get('like_count', 0)
+                print(f"Activity has {like_count_get} likes")
+                
+                # Verify the counts match
+                if like_count == like_count_get:
+                    print(f"✅ Like counts match: {like_count}")
+                else:
+                    print(f"❌ Like counts don't match: {like_count} vs {like_count_get}")
+                    success_get = False
+            
+            # Test unliking the activity
+            success_unlike, unlike_response = self.run_test(
+                "Unlike Activity",
+                "POST",
+                f"activities/{self.test_activity_id}/like",
+                200
+            )
+            
+            if success_unlike:
+                liked_after = unlike_response.get('liked', True)
+                like_count_after = unlike_response.get('like_count', 0)
+                print(f"Activity liked status after unlike: {liked_after}, Like count: {like_count_after}")
+                
+                # Verify the unlike worked
+                if not liked_after and like_count_after == 0:
+                    print(f"✅ Unlike successful")
+                else:
+                    print(f"❌ Unlike may not have worked properly")
+                    success_unlike = False
+            
+            return success and success_get and success_unlike
+        
+        return False
+    
+    def test_comment_on_activity(self):
+        """Test commenting on an activity"""
+        if not self.test_activity_id:
+            print("❌ No activity ID available to comment on")
+            return False
+        
+        comment_data = {
+            "content": "This is a test comment from the API tester"
+        }
+        
+        success, response = self.run_test(
+            "Comment on Activity",
+            "POST",
+            f"activities/{self.test_activity_id}/comment",
+            200,
+            data=comment_data
+        )
+        
+        if success and 'comment' in response:
+            comment_id = response['comment']['id']
+            print(f"Created comment with ID: {comment_id}")
+            
+            # Test getting comments for the activity
+            success_get, comments_response = self.run_test(
+                "Get Activity Comments",
+                "GET",
+                f"activities/{self.test_activity_id}/comments",
+                200
+            )
+            
+            if success_get:
+                comments = comments_response.get('comments', [])
+                print(f"Activity has {len(comments)} comments")
+                
+                # Verify our comment is in the list
+                comment_ids = [c.get('id') for c in comments]
+                if comment_id in comment_ids:
+                    print(f"✅ Found our comment in the list")
+                    return True
+                else:
+                    print(f"❌ Our comment not found in the list")
+            
+        return False
+    
+    def test_sample_data(self):
+        """Test that sample data exists in the system"""
+        print("\n🔍 Testing Sample Data...")
+        
+        # Test sample activities
+        success, activities_response = self.run_test(
+            "Check Sample Activities",
+            "GET",
+            "activities/around-me",
+            200
+        )
+        
+        sample_activities_found = 0
+        expected_titles = [
+            "Water Lantern Festival in Santa Clara - Looking for Company! 🏮",
+            "Saturday Morning Basketball at Fremont Park 🏀",
+            "Food Truck Festival & Wine Tasting This Weekend! 🍷🌮",
+            "New to Bay Area - Board Game Night Anyone? 🎲",
+            "Sunrise Yoga & Hiking at Rancho San Antonio 🧘‍♀️",
+            "Photography Walk in Palo Alto - Golden Hour Magic 📸"
+        ]
+        
+        if success:
+            activities = activities_response.get('activities', [])
+            print(f"Found {len(activities)} activities")
+            
+            for activity in activities:
+                title = activity.get('title', '')
+                if title in expected_titles:
+                    sample_activities_found += 1
+                    print(f"✅ Found sample activity: {title}")
+            
+            print(f"Found {sample_activities_found} out of {len(expected_titles)} expected sample activities")
+        
+        # Test sample merchants
+        success, merchants_response = self.run_test(
+            "Check Sample Merchants",
+            "GET",
+            "merchants/near-me",
+            200
+        )
+        
+        sample_merchants_found = 0
+        expected_merchants = [
+            "AMC Theaters",
+            "Climbing Club",
+            "Italian Restaurant",
+            "Escape Rooms",
+            "Spa"
+        ]
+        
+        if success:
+            merchants = merchants_response.get('merchants', [])
+            print(f"Found {len(merchants)} merchants")
+            
+            for merchant_data in merchants:
+                merchant = merchant_data.get('merchant', {})
+                name = merchant.get('business_name', '')
+                if name in expected_merchants:
+                    sample_merchants_found += 1
+                    print(f"✅ Found sample merchant: {name}")
+            
+            print(f"Found {sample_merchants_found} out of {len(expected_merchants)} expected sample merchants")
+        
+        # Test sample discount offers
+        success, discounts_response = self.run_test(
+            "Check Sample Discount Offers",
+            "GET",
+            "discounts/all",
+            200
+        )
+        
+        sample_discounts_found = 0
+        expected_discounts = [
+            "Bring Your Buddy - Free Popcorn! 🍿",
+            "Climb Together - 25% Off Day Passes! 🧗‍♀️",
+            "Dinner for Friends - 20% Off Groups of 4+ 🍝"
+        ]
+        
+        if success:
+            discounts = discounts_response.get('discounts', [])
+            print(f"Found {len(discounts)} discount offers")
+            
+            for discount in discounts:
+                title = discount.get('title', '')
+                if any(expected in title for expected in expected_discounts):
+                    sample_discounts_found += 1
+                    print(f"✅ Found sample discount: {title}")
+            
+            print(f"Found {sample_discounts_found} out of {len(expected_discounts)} expected sample discounts")
+        
+        return sample_activities_found > 0 and sample_merchants_found > 0 and sample_discounts_found > 0
+    
     def run_all_tests(self):
         """Run all API tests in sequence"""
         print("🚀 Starting FindBuddy API Tests")
@@ -503,6 +702,10 @@ class FindBuddyAPITester:
         if not self.test_health_check():
             print("❌ Health check failed, stopping tests")
             return False
+        
+        # Test sample data
+        if not self.test_sample_data():
+            print("⚠️ Sample data test failed or incomplete")
             
         # Test user registration
         if not self.test_register_user():
@@ -528,6 +731,13 @@ class FindBuddyAPITester:
         # Test getting my activities
         if not self.test_get_my_activities():
             print("❌ Getting my activities failed")
+        
+        # Test social features
+        if not self.test_like_activity():
+            print("❌ Liking activity failed")
+            
+        if not self.test_comment_on_activity():
+            print("❌ Commenting on activity failed")
             
         # Test merchant registration
         if not self.test_register_merchant():
