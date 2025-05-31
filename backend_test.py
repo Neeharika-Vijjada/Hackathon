@@ -212,15 +212,11 @@ class FindBuddyAPITester:
         second_user_token = self.token
         second_user_id = response.get('user', {}).get('id')
         
-        # Restore original user to create a new activity
-        self.token = original_token
-        self.user = original_user
-        
-        # Create a new activity for the second user to join
+        # Have second user create an activity
         tomorrow = datetime.now() + timedelta(days=1)
         activity_data = {
-            "title": "Test Activity for Joining",
-            "description": "This is a test activity for the second user to join",
+            "title": "Second User's Activity",
+            "description": "This is an activity created by the second user",
             "date": tomorrow.isoformat(),
             "location": "Test Location",
             "city": "Test City",
@@ -230,7 +226,7 @@ class FindBuddyAPITester:
         }
         
         success, response = self.run_test(
-            "Create Activity for Joining",
+            "Create Activity as Second User",
             "POST",
             "activities",
             200,
@@ -245,10 +241,11 @@ class FindBuddyAPITester:
             
         activity_id_to_join = response['activity']['id']
         
-        # Switch to second user
-        self.token = second_user_token
+        # Switch back to first user
+        self.token = original_token
+        self.user = original_user
         
-        # Now join the activity with the second user
+        # Now join the activity with the first user
         join_data = {
             "activity_id": activity_id_to_join
         }
@@ -283,9 +280,6 @@ class FindBuddyAPITester:
                     print(f"❌ User not found in participants list for activity {activity_id_to_join}")
                     success = False
         
-        # Restore original token and user
-        self.token = original_token
-        self.user = original_user
         return success
 
     def test_get_my_activities(self):
