@@ -1181,37 +1181,72 @@ const UserDashboard = () => {
 
           {/* Main Content */}
           <div className="flex-1">
-            {/* Navigation Tabs */}
+            {/* Navigation Tabs with Location Filter */}
             <div className="bg-white rounded-2xl shadow-lg mb-8 sticky top-24 z-10 overflow-hidden border border-gray-100">
               <div className="border-b border-gray-200">
-                <nav className="flex">
-                  <button
-                    onClick={() => setActiveTab('find-buddies')}
-                    className={`flex-1 py-4 px-6 text-center border-b-2 font-bold text-sm transition-all duration-300 ${
-                      activeTab === 'find-buddies'
-                        ? 'border-pink-500 text-pink-600 bg-gradient-to-r from-pink-50 to-purple-50'
-                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 hover:bg-gray-50'
-                    }`}
-                  >
-                    <div className="flex items-center justify-center space-x-2">
-                      <span className="text-lg">👫</span>
-                      <span>Find Buddies</span>
+                <div className="flex justify-between items-center">
+                  <nav className="flex">
+                    <button
+                      onClick={() => setActiveTab('find-buddies')}
+                      className={`flex-1 py-4 px-6 text-center border-b-2 font-bold text-sm transition-all duration-300 ${
+                        activeTab === 'find-buddies'
+                          ? 'border-pink-500 text-pink-600 bg-gradient-to-r from-pink-50 to-purple-50'
+                          : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 hover:bg-gray-50'
+                      }`}
+                    >
+                      <div className="flex items-center justify-center space-x-2">
+                        <span className="text-lg">👫</span>
+                        <span>Find Buddies</span>
+                      </div>
+                    </button>
+                    <button
+                      onClick={() => setActiveTab('find-discounts')}
+                      className={`flex-1 py-4 px-6 text-center border-b-2 font-bold text-sm transition-all duration-300 ${
+                        activeTab === 'find-discounts'
+                          ? 'border-orange-500 text-orange-600 bg-gradient-to-r from-orange-50 to-yellow-50'
+                          : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 hover:bg-gray-50'
+                      }`}
+                    >
+                      <div className="flex items-center justify-center space-x-2">
+                        <span className="text-lg">🎁</span>
+                        <span>Find Discounts</span>
+                      </div>
+                    </button>
+                  </nav>
+                  
+                  {/* Small Location Filter in Right Corner */}
+                  {(activeTab === 'find-buddies' || activeTab === 'find-discounts') && (
+                    <div className="flex items-center space-x-2 mr-4">
+                      <label className="text-sm text-gray-500">📍</label>
+                      <select
+                        value={locationFilter}
+                        onChange={(e) => {
+                          setLocationFilter(e.target.value);
+                          setTimeout(() => {
+                            if (activeTab === 'find-buddies') {
+                              fetchActivitiesAroundMe();
+                            } else if (activeTab === 'find-discounts') {
+                              fetchMerchants();
+                            }
+                          }, 100);
+                        }}
+                        className="text-xs border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                      >
+                        <option value={user.city}>My City</option>
+                        <option value="New York">New York</option>
+                        <option value="Los Angeles">Los Angeles</option>
+                        <option value="Chicago">Chicago</option>
+                        <option value="Houston">Houston</option>
+                        <option value="Phoenix">Phoenix</option>
+                        <option value="Philadelphia">Philadelphia</option>
+                        <option value="San Antonio">San Antonio</option>
+                        <option value="San Diego">San Diego</option>
+                        <option value="Dallas">Dallas</option>
+                        <option value="San Jose">San Jose</option>
+                      </select>
                     </div>
-                  </button>
-                  <button
-                    onClick={() => setActiveTab('find-discounts')}
-                    className={`flex-1 py-4 px-6 text-center border-b-2 font-bold text-sm transition-all duration-300 ${
-                      activeTab === 'find-discounts'
-                        ? 'border-orange-500 text-orange-600 bg-gradient-to-r from-orange-50 to-yellow-50'
-                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 hover:bg-gray-50'
-                    }`}
-                  >
-                    <div className="flex items-center justify-center space-x-2">
-                      <span className="text-lg">🎁</span>
-                      <span>Find Discounts</span>
-                    </div>
-                  </button>
-                </nav>
+                  )}
+                </div>
               </div>
             </div>
 
