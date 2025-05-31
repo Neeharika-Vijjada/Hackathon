@@ -425,63 +425,225 @@ const AuthForm = () => {
 
 // User Components
 const ActivityCard = ({ activity, onJoin, showJoinButton = true, isOwn = false }) => {
+  const [showComments, setShowComments] = useState(false);
+  const [comments, setComments] = useState([]);
+  const [newComment, setNewComment] = useState('');
+  const [likes, setLikes] = useState({ count: 0, liked: false });
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    fetchLikes();
+  }, [activity.id]);
+
+  const fetchLikes = async () => {
+    try {
+      const response = await axios.get(`${API}/activities/${activity.id}/likes`);
+      setLikes({
+        count: response.data.like_count,
+        liked: false // We'll check this properly in a real implementation
+      });
+    } catch (error) {
+      console.error('Error fetching likes:', error);
+    }
+  };
+
+  const fetchComments = async () => {
+    if (showComments && comments.length === 0) {
+      try {
+        const response = await axios.get(`${API}/activities/${activity.id}/comments`);
+        setComments(response.data.comments);
+      } catch (error) {
+        console.error('Error fetching comments:', error);
+      }
+    }
+  };
+
+  const handleLike = async () => {
+    try {
+      const response = await axios.post(`${API}/activities/${activity.id}/like`);
+      setLikes({
+        count: response.data.like_count,
+        liked: response.data.liked
+      });
+    } catch (error) {
+      console.error('Error toggling like:', error);
+    }
+  };
+
+  const handleComment = async (e) => {
+    e.preventDefault();
+    if (!newComment.trim()) return;
+
+    setLoading(true);
+    try {
+      const response = await axios.post(`${API}/activities/${activity.id}/comment`, {
+        activity_id: activity.id,
+        content: newComment
+      });
+      setComments([...comments, response.data.comment]);
+      setNewComment('');
+    } catch (error) {
+      console.error('Error adding comment:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const formatDate = (dateString) => {
     const date = new Date(dateString);
     return date.toLocaleDateString() + ' at ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
+  const formatTimeAgo = (dateString) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now - date;
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+    const diffDays = Math.floor(diffHours / 24);
+
+    if (diffDays > 0) {
+      return `${diffDays}d ago`;
+    } else if (diffHours > 0) {
+      return `${diffHours}h ago`;
+    } else {
+      return 'Just now';
+    }
+  };
+
   return (
-    <div className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow p-6 border border-gray-200">
-      <div className="flex justify-between items-start mb-3">
-        <h3 className="text-xl font-semibold text-gray-900">{activity.title}</h3>
-        <span className="bg-indigo-100 text-indigo-800 px-2 py-1 rounded-full text-sm font-medium">
-          {activity.category}
-        </span>
+    <div className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow border border-gray-200">
+      {/* Header */}
+      <div className="p-4 border-b border-gray-100">
+        <div className="flex items-center space-x-3">
+          <div className="w-10 h-10 bg-indigo-500 rounded-full flex items-center justify-center text-white font-semibold">
+            {activity.creator_name.charAt(0)}
+          </div>
+          <div>
+            <h4 className="font-semibold text-gray-900">{activity.creator_name}</h4>
+            <p className="text-sm text-gray-500">{formatTimeAgo(activity.created_at)}</p>
+          </div>
+          <span className="ml-auto bg-indigo-100 text-indigo-800 px-2 py-1 rounded-full text-xs font-medium">
+            {activity.category}
+          </span>
+        </div>
       </div>
-      
-      <p className="text-gray-600 mb-3">{activity.description}</p>
-      
-      <div className="space-y-2 text-sm text-gray-500 mb-4">
-        <div className="flex items-center">
-          <span className="font-medium">📅 Date:</span>
-          <span className="ml-2">{formatDate(activity.date)}</span>
+
+      {/* Content */}
+      <div className="p-4">
+        <h3 className="text-lg font-semibold text-gray-900 mb-3">{activity.title}</h3>
+        <p className="text-gray-700 mb-4 leading-relaxed">{activity.description}</p>
+        
+        <div className="space-y-2 text-sm text-gray-600 mb-4">
+          <div className="flex items-center">
+            <span className="font-medium">📅</span>
+            <span className="ml-2">{formatDate(activity.date)}</span>
+          </div>
+          <div className="flex items-center">
+            <span className="font-medium">📍</span>
+            <span className="ml-2">{activity.location}, {activity.city}</span>
+          </div>
+          <div className="flex items-center">
+            <span className="font-medium">👥</span>
+            <span className="ml-2">{activity.participants.length} attending</span>
+            {activity.max_participants && (
+              <span> • {activity.max_participants} max</span>
+            )}
+          </div>
         </div>
-        <div className="flex items-center">
-          <span className="font-medium">📍 Location:</span>
-          <span className="ml-2">{activity.location}, {activity.city}</span>
-        </div>
-        <div className="flex items-center">
-          <span className="font-medium">👤 Organizer:</span>
-          <span className="ml-2">{activity.creator_name}</span>
-        </div>
-        <div className="flex items-center">
-          <span className="font-medium">👥 Participants:</span>
-          <span className="ml-2">{activity.participants.length}</span>
-          {activity.max_participants && (
-            <span>/{activity.max_participants}</span>
+
+        {activity.interests && activity.interests.length > 0 && (
+          <div className="mb-4">
+            <div className="flex flex-wrap gap-1">
+              {activity.interests.map((interest, index) => (
+                <span key={index} className="bg-gray-100 text-gray-700 px-2 py-1 rounded text-xs">
+                  #{interest}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Social Actions */}
+      <div className="px-4 py-3 border-t border-gray-100">
+        <div className="flex items-center space-x-6">
+          <button
+            onClick={handleLike}
+            className={`flex items-center space-x-1 ${
+              likes.liked ? 'text-red-500' : 'text-gray-500 hover:text-red-500'
+            } transition-colors`}
+          >
+            <span>{likes.liked ? '❤️' : '🤍'}</span>
+            <span className="text-sm">{likes.count}</span>
+          </button>
+          
+          <button
+            onClick={() => {
+              setShowComments(!showComments);
+              fetchComments();
+            }}
+            className="flex items-center space-x-1 text-gray-500 hover:text-blue-500 transition-colors"
+          >
+            <span>💬</span>
+            <span className="text-sm">{comments.length}</span>
+          </button>
+
+          {showJoinButton && !isOwn && (
+            <button
+              onClick={() => onJoin(activity.id)}
+              className="ml-auto bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium py-2 px-4 rounded-md transition-colors"
+            >
+              Join Activity
+            </button>
           )}
         </div>
       </div>
 
-      {activity.interests && activity.interests.length > 0 && (
-        <div className="mb-4">
-          <div className="flex flex-wrap gap-1">
-            {activity.interests.map((interest, index) => (
-              <span key={index} className="bg-gray-100 text-gray-700 px-2 py-1 rounded text-xs">
-                {interest}
-              </span>
-            ))}
+      {/* Comments Section */}
+      {showComments && (
+        <div className="border-t border-gray-100">
+          {/* Comments List */}
+          {comments.length > 0 && (
+            <div className="px-4 py-3 max-h-60 overflow-y-auto">
+              {comments.map((comment, index) => (
+                <div key={index} className="mb-3 last:mb-0">
+                  <div className="flex items-start space-x-2">
+                    <div className="w-6 h-6 bg-gray-300 rounded-full flex items-center justify-center text-xs font-semibold">
+                      {comment.user_name.charAt(0)}
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm">
+                        <span className="font-semibold">{comment.user_name}</span>
+                        <span className="text-gray-700 ml-2">{comment.content}</span>
+                      </p>
+                      <p className="text-xs text-gray-500 mt-1">{formatTimeAgo(comment.created_at)}</p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Add Comment */}
+          <div className="px-4 py-3 border-t border-gray-100">
+            <form onSubmit={handleComment} className="flex space-x-2">
+              <input
+                type="text"
+                value={newComment}
+                onChange={(e) => setNewComment(e.target.value)}
+                placeholder="Add a comment..."
+                className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              />
+              <button
+                type="submit"
+                disabled={loading || !newComment.trim()}
+                className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors disabled:opacity-50"
+              >
+                {loading ? '...' : 'Post'}
+              </button>
+            </form>
           </div>
         </div>
-      )}
-
-      {showJoinButton && !isOwn && (
-        <button
-          onClick={() => onJoin(activity.id)}
-          className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-md transition-colors"
-        >
-          Join Activity
-        </button>
       )}
     </div>
   );
