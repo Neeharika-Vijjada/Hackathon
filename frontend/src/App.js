@@ -1091,6 +1091,10 @@ const UserDashboard = () => {
   const [merchants, setMerchants] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  
+  // Location filter states for both tabs
+  const [selectedLocationBuddies, setSelectedLocationBuddies] = useState('');
+  const [selectedLocationDiscounts, setSelectedLocationDiscounts] = useState('');
 
   useEffect(() => {
     if (activeTab === 'find-buddies') {
@@ -1098,12 +1102,16 @@ const UserDashboard = () => {
     } else if (activeTab === 'find-discounts') {
       fetchMerchants();
     }
-  }, [activeTab]);
+  }, [activeTab, selectedLocationBuddies, selectedLocationDiscounts]);
 
   const fetchActivitiesAroundMe = async () => {
     setLoading(true);
     try {
-      const response = await axios.get(`${API}/activities/around-me`);
+      let url = `${API}/activities/around-me`;
+      if (selectedLocationBuddies) {
+        url += `?city_filter=${encodeURIComponent(selectedLocationBuddies)}`;
+      }
+      const response = await axios.get(url);
       setActivitiesAroundMe(response.data.activities);
     } catch (error) {
       console.error('Error fetching activities around me:', error);
@@ -1115,7 +1123,11 @@ const UserDashboard = () => {
   const fetchMerchants = async () => {
     setLoading(true);
     try {
-      const response = await axios.get(`${API}/merchants/near-me`);
+      let url = `${API}/merchants/near-me`;
+      if (selectedLocationDiscounts) {
+        url += `?city_filter=${encodeURIComponent(selectedLocationDiscounts)}`;
+      }
+      const response = await axios.get(url);
       setMerchants(response.data.merchants);
     } catch (error) {
       console.error('Error fetching merchants:', error);
@@ -1142,8 +1154,23 @@ const UserDashboard = () => {
     alert('🎊 Activity created successfully! Let the buddy finding begin!');
   };
 
+  const locationOptions = [
+    { value: '', label: '📍 All Locations' },
+    { value: 'San Francisco', label: '📍 San Francisco' },
+    { value: 'San Jose', label: '📍 San Jose' },
+    { value: 'Palo Alto', label: '📍 Palo Alto' },
+    { value: 'Mountain View', label: '📍 Mountain View' },
+    { value: 'Fremont', label: '📍 Fremont' },
+    { value: 'Santa Clara', label: '📍 Santa Clara' },
+    { value: 'Sunnyvale', label: '📍 Sunnyvale' },
+    { value: 'Cupertino', label: '📍 Cupertino' },
+    { value: 'Milpitas', label: '📍 Milpitas' },
+    { value: 'Campbell', label: '📍 Campbell' },
+    { value: 'Santa Cruz', label: '📍 Santa Cruz' }
+  ];
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-orange-50 pt-20">
+    <div className="min-h-screen bg-white pt-20">
       <Header />
       
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -1156,7 +1183,7 @@ const UserDashboard = () => {
           {/* Main Content */}
           <div className="flex-1">
             {/* Navigation Tabs */}
-            <div className="bg-white rounded-2xl shadow-lg mb-8 sticky top-24 z-10 overflow-hidden">
+            <div className="bg-white rounded-2xl shadow-lg mb-8 sticky top-24 z-10 overflow-hidden border border-gray-100">
               <div className="border-b border-gray-200">
                 <nav className="flex">
                   <button
@@ -1189,6 +1216,72 @@ const UserDashboard = () => {
               </div>
             </div>
 
+            {/* Location Filter for Find Buddies */}
+            {activeTab === 'find-buddies' && (
+              <div className="bg-white rounded-2xl shadow-lg p-6 mb-6 border border-gray-100">
+                <div className="flex flex-wrap items-center gap-4">
+                  <div className="flex items-center space-x-3">
+                    <span className="text-2xl">🗺️</span>
+                    <h4 className="text-lg font-bold text-gray-900">Filter by Location</h4>
+                  </div>
+                  <div className="flex-1 max-w-sm">
+                    <select
+                      value={selectedLocationBuddies}
+                      onChange={(e) => setSelectedLocationBuddies(e.target.value)}
+                      className="w-full px-4 py-3 bg-gradient-to-r from-pink-50 to-purple-50 border-2 border-pink-200 rounded-full text-gray-700 font-medium focus:outline-none focus:ring-2 focus:ring-pink-400 focus:border-pink-400 transition-all duration-300"
+                    >
+                      {locationOptions.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  {selectedLocationBuddies && (
+                    <button
+                      onClick={() => setSelectedLocationBuddies('')}
+                      className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-full transition-colors font-medium"
+                    >
+                      Clear Filter
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Location Filter for Find Discounts */}
+            {activeTab === 'find-discounts' && (
+              <div className="bg-white rounded-2xl shadow-lg p-6 mb-6 border border-gray-100">
+                <div className="flex flex-wrap items-center gap-4">
+                  <div className="flex items-center space-x-3">
+                    <span className="text-2xl">🏪</span>
+                    <h4 className="text-lg font-bold text-gray-900">Filter by Location</h4>
+                  </div>
+                  <div className="flex-1 max-w-sm">
+                    <select
+                      value={selectedLocationDiscounts}
+                      onChange={(e) => setSelectedLocationDiscounts(e.target.value)}
+                      className="w-full px-4 py-3 bg-gradient-to-r from-orange-50 to-yellow-50 border-2 border-orange-200 rounded-full text-gray-700 font-medium focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition-all duration-300"
+                    >
+                      {locationOptions.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  {selectedLocationDiscounts && (
+                    <button
+                      onClick={() => setSelectedLocationDiscounts('')}
+                      className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-full transition-colors font-medium"
+                    >
+                      Clear Filter
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+
             {/* Improved Merchant Banner */}
             {activeTab === 'find-discounts' && (
               <div className="mb-8 bg-gradient-to-r from-orange-400 via-pink-500 to-purple-600 rounded-2xl p-8 text-white shadow-xl relative overflow-hidden">
@@ -1220,17 +1313,27 @@ const UserDashboard = () => {
                           Activities Near You
                         </h3>
                         <p className="text-gray-600 mt-2">Connect with like-minded people for amazing experiences!</p>
+                        {selectedLocationBuddies && (
+                          <p className="text-pink-600 font-medium mt-1">
+                            Showing activities in {selectedLocationBuddies}
+                          </p>
+                        )}
                       </div>
-                      <div className="bg-white rounded-full px-4 py-2 shadow-lg border-2 border-purple-200">
+                      <div className="bg-gradient-to-r from-pink-50 to-purple-50 rounded-full px-4 py-2 shadow-lg border-2 border-purple-200">
                         <span className="text-sm font-bold text-purple-600">
                           {activitiesAroundMe.length} activities
                         </span>
                       </div>
                     </div>
                     {activitiesAroundMe.length === 0 ? (
-                      <div className="text-center py-16 bg-white rounded-2xl shadow-lg border-2 border-dashed border-gray-300">
+                      <div className="text-center py-16 bg-gradient-to-br from-pink-50 to-purple-50 rounded-2xl shadow-lg border-2 border-dashed border-purple-300">
                         <div className="text-6xl mb-4">🎭</div>
-                        <p className="text-gray-600 text-xl font-medium">No activities found in your area.</p>
+                        <p className="text-gray-600 text-xl font-medium">
+                          {selectedLocationBuddies 
+                            ? `No activities found in ${selectedLocationBuddies}.`
+                            : "No activities found in your area."
+                          }
+                        </p>
                         <p className="text-gray-500 mt-2">Be the first to create an amazing activity!</p>
                       </div>
                     ) : (
@@ -1254,20 +1357,30 @@ const UserDashboard = () => {
                       <div>
                         <h3 className="text-3xl font-bold text-gray-900 flex items-center">
                           <span className="mr-3">🛍️</span>
-                          Buddy Discounts in {user.city}
+                          Buddy Discounts in {selectedLocationDiscounts || user.city}
                         </h3>
                         <p className="text-gray-600 mt-2">Amazing deals when you visit with your buddies!</p>
+                        {selectedLocationDiscounts && (
+                          <p className="text-orange-600 font-medium mt-1">
+                            Showing businesses in {selectedLocationDiscounts}
+                          </p>
+                        )}
                       </div>
-                      <div className="bg-white rounded-full px-4 py-2 shadow-lg border-2 border-orange-200">
+                      <div className="bg-gradient-to-r from-orange-50 to-yellow-50 rounded-full px-4 py-2 shadow-lg border-2 border-orange-200">
                         <span className="text-sm font-bold text-orange-600">
                           {merchants.length} businesses
                         </span>
                       </div>
                     </div>
                     {merchants.length === 0 ? (
-                      <div className="text-center py-16 bg-white rounded-2xl shadow-lg border-2 border-dashed border-gray-300">
+                      <div className="text-center py-16 bg-gradient-to-br from-orange-50 to-yellow-50 rounded-2xl shadow-lg border-2 border-dashed border-orange-300">
                         <div className="text-6xl mb-4">🏪</div>
-                        <p className="text-gray-600 text-xl font-medium">No merchant partners found in your area.</p>
+                        <p className="text-gray-600 text-xl font-medium">
+                          {selectedLocationDiscounts 
+                            ? `No merchant partners found in ${selectedLocationDiscounts}.`
+                            : "No merchant partners found in your area."
+                          }
+                        </p>
                         <p className="text-gray-500 mt-2">Check back soon for buddy discounts!</p>
                       </div>
                     ) : (
