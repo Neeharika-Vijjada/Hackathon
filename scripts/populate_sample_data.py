@@ -620,6 +620,112 @@ async def create_sample_discount_offers(merchants):
             "current_redemptions": 67,
             "active": True,
             "created_at": datetime.utcnow()
+        },
+        # New offers for additional merchants
+        {
+            "id": str(uuid.uuid4()),
+            "merchant_id": merchants[5]["id"] if len(merchants) > 5 else merchants[0]["id"],  # TopGolf
+            "merchant_name": merchants[5]["business_name"] if len(merchants) > 5 else "TopGolf San Jose",
+            "title": "Golf with Friends - 40% Off Bay Rentals! ⛳",
+            "description": "Bring your crew for an epic golf experience! Groups of 4+ get 40% off bay rentals during weekday happy hours. Includes clubs and unlimited time until 6 PM!",
+            "discount_percentage": 40,
+            "minimum_buddies": 4,
+            "valid_until": base_date + timedelta(days=60),
+            "terms_conditions": "Valid Monday-Friday 2-6 PM only. Groups of 4-6 people. Includes clubs and balls. Food and drinks sold separately.",
+            "max_redemptions": 100,
+            "current_redemptions": 15,
+            "active": True,
+            "created_at": datetime.utcnow()
+        },
+        {
+            "id": str(uuid.uuid4()),
+            "merchant_id": merchants[6]["id"] if len(merchants) > 6 else merchants[1]["id"],  # Cheesecake Factory
+            "merchant_name": merchants[6]["business_name"] if len(merchants) > 6 else "The Cheesecake Factory",
+            "title": "Group Celebration - Free Cheesecake! 🍰",
+            "description": "Celebrating with friends? Groups of 6+ get a complimentary cheesecake of your choice! Perfect for birthdays, graduations, or any special occasion worth celebrating together.",
+            "discount_percentage": 0,  # Special offer
+            "minimum_buddies": 6,
+            "valid_until": base_date + timedelta(days=90),
+            "terms_conditions": "Valid for groups of 6 or more. One complimentary cheesecake per table. Cannot be combined with other offers. Reservations recommended.",
+            "max_redemptions": 200,
+            "current_redemptions": 28,
+            "active": True,
+            "created_at": datetime.utcnow()
+        },
+        {
+            "id": str(uuid.uuid4()),
+            "merchant_id": merchants[7]["id"] if len(merchants) > 7 else merchants[2]["id"],  # Dave & Buster's
+            "merchant_name": merchants[7]["business_name"] if len(merchants) > 7 else "Dave & Buster's",
+            "title": "Power Hour - 30% Off Game Cards! 🎮",
+            "description": "Game on with your buddies! Groups of 3+ get 30% off all game cards during weekday power hours. Perfect for friendly competition and tons of fun!",
+            "discount_percentage": 30,
+            "minimum_buddies": 3,
+            "valid_until": base_date + timedelta(days=45),
+            "terms_conditions": "Valid Monday-Thursday 3-6 PM. Groups of 3-8 people. Discount applies to game cards only, not food or drinks.",
+            "max_redemptions": 150,
+            "current_redemptions": 42,
+            "active": True,
+            "created_at": datetime.utcnow()
+        },
+        {
+            "id": str(uuid.uuid4()),
+            "merchant_id": merchants[8]["id"] if len(merchants) > 8 else merchants[3]["id"],  # Urban Air
+            "merchant_name": merchants[8]["business_name"] if len(merchants) > 8 else "Urban Air Adventure Park",
+            "title": "Squad Jump - 25% Off Group Packages! 🤸‍♀️",
+            "description": "Jump into fun with your squad! Groups of 4+ save 25% on adventure packages. Includes trampolines, obstacles, and climbing. Perfect for active friend groups!",
+            "discount_percentage": 25,
+            "minimum_buddies": 4,
+            "valid_until": base_date + timedelta(days=75),
+            "terms_conditions": "Valid for groups of 4-12 people. Includes 90-minute adventure package. Safety waivers required for all participants.",
+            "max_redemptions": 80,
+            "current_redemptions": 12,
+            "active": True,
+            "created_at": datetime.utcnow()
+        },
+        {
+            "id": str(uuid.uuid4()),
+            "merchant_id": merchants[9]["id"] if len(merchants) > 9 else merchants[4]["id"],  # Starbucks Reserve
+            "merchant_name": merchants[9]["business_name"] if len(merchants) > 9 else "Starbucks Reserve",
+            "title": "Coffee Club - Buy 3 Get 1 Free! ☕",
+            "description": "Perfect for coffee dates and study groups! When 4 friends order specialty drinks together, the 4th drink is on us. Enjoy premium coffee experiences together!",
+            "discount_percentage": 25,
+            "minimum_buddies": 4,
+            "valid_until": base_date + timedelta(days=30),
+            "terms_conditions": "Valid for groups ordering together. Applies to specialty reserve drinks only. Free drink must be equal or lesser value.",
+            "max_redemptions": 500,
+            "current_redemptions": 89,
+            "active": True,
+            "created_at": datetime.utcnow()
+        },
+        {
+            "id": str(uuid.uuid4()),
+            "merchant_id": merchants[10]["id"] if len(merchants) > 10 else merchants[0]["id"],  # Bowlero
+            "merchant_name": merchants[10]["business_name"] if len(merchants) > 10 else "Bowlero Fremont",
+            "title": "Strike Night - 50% Off Lane Rentals! 🎳",
+            "description": "Roll with your crew and save big! Groups of 4+ get 50% off lane rentals during weeknight specials. Includes shoes and unlimited bowling until midnight!",
+            "discount_percentage": 50,
+            "minimum_buddies": 4,
+            "valid_until": base_date + timedelta(days=60),
+            "terms_conditions": "Valid Sunday-Thursday 8 PM-midnight. Groups of 4-8 people. Includes shoe rental. Food and drinks sold separately.",
+            "max_redemptions": 120,
+            "current_redemptions": 35,
+            "active": True,
+            "created_at": datetime.utcnow()
+        },
+        {
+            "id": str(uuid.uuid4()),
+            "merchant_id": merchants[11]["id"] if len(merchants) > 11 else merchants[1]["id"],  # Cyclebar
+            "merchant_name": merchants[11]["business_name"] if len(merchants) > 11 else "Cyclebar Studio",
+            "title": "Fitness Friends - 3 Classes for $60! 🚴‍♀️",
+            "description": "Sweat together, stay together! Groups of 3+ can split a 3-class package for just $60 total. Get fit and have fun with your workout buddies!",
+            "discount_percentage": 40,
+            "minimum_buddies": 3,
+            "valid_until": base_date + timedelta(days=90),
+            "terms_conditions": "Valid for groups of 3 people only. Classes must be booked and taken together. Package expires 30 days after purchase.",
+            "max_redemptions": 50,
+            "current_redemptions": 8,
+            "active": True,
+            "created_at": datetime.utcnow()
         }
     ]
     
