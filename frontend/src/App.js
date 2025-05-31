@@ -1123,11 +1123,10 @@ const UserDashboard = () => {
   const fetchMerchants = async () => {
     setLoading(true);
     try {
-      let url = `${API}/merchants/near-me`;
-      if (selectedLocationDiscounts) {
-        url += `?city_filter=${encodeURIComponent(selectedLocationDiscounts)}`;
-      }
-      const response = await axios.get(url);
+      const params = locationFilter && locationFilter !== user.city 
+        ? { business_type: locationFilter } 
+        : {};
+      const response = await axios.get(`${API}/merchants/near-me`, { params });
       setMerchants(response.data.merchants);
     } catch (error) {
       console.error('Error fetching merchants:', error);
