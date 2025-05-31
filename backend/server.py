@@ -29,6 +29,11 @@ app = FastAPI()
 # Create a router with the /api prefix
 api_router = APIRouter(prefix="/api")
 
+# Add your routes to the router instead of directly to app
+@api_router.get("/")
+async def root():
+    return {"message": "FindBuddy API is running!", "status": "healthy"}
+
 # JWT Configuration
 JWT_SECRET = "findbuddy_secret_key_2025"
 JWT_ALGORITHM = "HS256"
