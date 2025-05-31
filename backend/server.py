@@ -148,16 +148,33 @@ def calculate_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> fl
 
 def calculate_interest_match_score(user_interests: List[str], activity_interests: List[str]) -> float:
     """Calculate match score between user and activity interests (0-1)"""
-    if not user_interests or not activity_interests:
-        return 0.1
+    if not user_interests:
+        return 0.3  # Give some base score if user has no interests
+    if not activity_interests:
+        return 0.2  # Give some base score if activity has no interests
     
-    user_set = set([interest.lower() for interest in user_interests])
-    activity_set = set([interest.lower() for interest in activity_interests])
+    user_set = set([interest.lower().strip() for interest in user_interests])
+    activity_set = set([interest.lower().strip() for interest in activity_interests])
     
+    # Direct matches
     intersection = len(user_set.intersection(activity_set))
-    union = len(user_set.union(activity_set))
+    if intersection > 0:
+        union = len(user_set.union(activity_set))
+        direct_score = intersection / union
+    else:
+        direct_score = 0
     
-    return intersection / union if union > 0 else 0.1
+    # Partial matches (substring matching)
+    partial_score = 0.0
+    for user_interest in user_set:
+        for activity_interest in activity_set:
+            if user_interest in activity_interest or activity_interest in user_interest:
+                partial_score += 0.3
+                break
+    
+    # Combine scores
+    final_score = max(direct_score, partial_score)
+    return min(1.0, final_score)  # Cap at 1.0
 
 # Authentication Routes
 @api_router.post("/auth/register")
