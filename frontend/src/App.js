@@ -1269,10 +1269,6 @@ const UserDashboard = () => {
                 </div>
               </div>
             </div>
-                  )}
-                </div>
-              </div>
-            )}
 
             {/* Location Filter for Find Discounts */}
             {activeTab === 'find-discounts' && (
@@ -1429,7 +1425,6 @@ const UserDashboard = () => {
         onCreate={handleCreateActivity}
       />
     </div>
-    </>
   );
 };
 
