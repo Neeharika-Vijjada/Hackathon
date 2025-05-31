@@ -346,7 +346,7 @@ class FindBuddyAPITester:
     def test_get_all_discount_offers(self):
         """Test getting all discount offers"""
         success, response = self.run_test(
-            "Get All Discount Offers",
+            "Get All Discount Offers (Find Discounts)",
             "GET",
             "discounts/all",
             200
@@ -355,7 +355,31 @@ class FindBuddyAPITester:
         if success:
             discounts = response.get('discounts', [])
             print(f"✅ Found {len(discounts)} discount offers")
-        return success
+            
+            # Check if we have at least 20 discount offers as per the requirements
+            if len(discounts) >= 20:
+                print("✅ Found at least 20 discount offers as required")
+                
+                # Check for specific new offers mentioned in the requirements
+                offer_titles = [d.get('title', '') for d in discounts]
+                expected_offers = [
+                    "Student Movie Night", 
+                    "Corporate Team Building", 
+                    "Happy Hour Buddies", 
+                    "Birthday Party Package", 
+                    "Weekend Warriors", 
+                    "Study Group Special", 
+                    "League Night"
+                ]
+                
+                found_offers = [offer for offer in expected_offers if any(offer in title for title in offer_titles)]
+                print(f"✅ Found {len(found_offers)}/{len(expected_offers)} of the new expected offers")
+                
+                return True
+            else:
+                print(f"❌ Expected at least 20 discount offers, but found only {len(discounts)}")
+                return False
+        return False
 
     def run_all_tests(self):
         """Run all API tests"""
