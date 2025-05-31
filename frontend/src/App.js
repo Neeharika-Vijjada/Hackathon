@@ -94,7 +94,7 @@ const Header = () => {
   const currentEntity = user || merchant;
 
   return (
-    <header className="bg-white shadow-lg border-b border-gray-200">
+    <header className="bg-white shadow-lg border-b border-gray-200 fixed top-0 left-0 right-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center py-4">
           <div className="flex items-center space-x-4">
@@ -119,6 +119,58 @@ const Header = () => {
         </div>
       </div>
     </header>
+  );
+};
+
+const UserProfileSidebar = ({ user, onCreateActivity }) => {
+  return (
+    <div className="bg-white rounded-lg shadow-md p-6 sticky top-24">
+      <div className="text-center mb-6">
+        <div className="w-20 h-20 bg-indigo-500 rounded-full flex items-center justify-center text-white text-2xl font-bold mx-auto mb-4">
+          {user.name.charAt(0)}
+        </div>
+        <h2 className="text-xl font-bold text-gray-900">{user.name}</h2>
+        <p className="text-gray-600">{user.city}</p>
+        {user.bio && <p className="text-gray-600 text-sm mt-2">{user.bio}</p>}
+      </div>
+
+      {user.interests && user.interests.length > 0 && (
+        <div className="mb-6">
+          <h3 className="text-sm font-semibold text-gray-900 mb-2">Interests</h3>
+          <div className="flex flex-wrap gap-1">
+            {user.interests.map((interest, index) => (
+              <span key={index} className="bg-indigo-100 text-indigo-800 px-2 py-1 rounded text-xs">
+                {interest}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className="space-y-3">
+        <button
+          onClick={onCreateActivity}
+          className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-3 px-4 rounded-lg transition-colors flex items-center justify-center space-x-2"
+        >
+          <span>➕</span>
+          <span>Create Activity</span>
+        </button>
+        
+        <div className="bg-gray-50 rounded-lg p-4">
+          <h4 className="text-sm font-semibold text-gray-900 mb-2">Quick Stats</h4>
+          <div className="space-y-1 text-sm text-gray-600">
+            <div className="flex justify-between">
+              <span>Member since:</span>
+              <span>{new Date(user.created_at).toLocaleDateString()}</span>
+            </div>
+            <div className="flex justify-between">
+              <span>City:</span>
+              <span>{user.city}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 };
 
@@ -511,7 +563,7 @@ const ActivityCard = ({ activity, onJoin, showJoinButton = true, isOwn = false }
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow border border-gray-200">
+    <div className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow border border-gray-200 mb-6">
       {/* Header */}
       <div className="p-4 border-b border-gray-100">
         <div className="flex items-center space-x-3">
@@ -653,7 +705,7 @@ const MerchantCard = ({ merchantData }) => {
   const { merchant, active_offers, offers_count } = merchantData;
 
   return (
-    <div className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow p-6 border border-gray-200">
+    <div className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow p-6 border border-gray-200 mb-6">
       <div className="flex justify-between items-start mb-3">
         <h3 className="text-xl font-semibold text-gray-900">{merchant.business_name}</h3>
         <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-sm font-medium">
@@ -691,7 +743,9 @@ const MerchantCard = ({ merchantData }) => {
                 <h5 className="font-medium text-yellow-800">{offer.title}</h5>
                 <p className="text-sm text-yellow-700">{offer.description}</p>
                 <div className="flex justify-between items-center mt-2">
-                  <span className="font-bold text-yellow-800">{offer.discount_percentage}% OFF</span>
+                  <span className="font-bold text-yellow-800">
+                    {offer.discount_percentage > 0 ? `${offer.discount_percentage}% OFF` : 'Special Offer'}
+                  </span>
                   <span className="text-xs text-yellow-600">Min {offer.minimum_buddies} people</span>
                 </div>
               </div>
@@ -941,163 +995,165 @@ const UserDashboard = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 pt-20">
       <Header />
       
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* User Profile Summary */}
-        <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-2xl font-bold text-gray-900">{user.name}</h2>
-              <p className="text-gray-600">{user.city}</p>
-              <p className="text-gray-600">{user.bio}</p>
-              {user.interests && user.interests.length > 0 && (
-                <div className="mt-2">
-                  <span className="text-sm text-gray-500">Interests: </span>
-                  {user.interests.map((interest, index) => (
-                    <span key={index} className="bg-indigo-100 text-indigo-800 px-2 py-1 rounded text-xs mr-1">
-                      {interest}
-                    </span>
-                  ))}
-                </div>
-              )}
+        <div className="flex flex-col lg:flex-row gap-8">
+          {/* Sidebar */}
+          <div className="lg:w-80 flex-shrink-0">
+            <UserProfileSidebar user={user} onCreateActivity={() => setShowCreateModal(true)} />
+          </div>
+
+          {/* Main Content */}
+          <div className="flex-1">
+            {/* Navigation Tabs */}
+            <div className="bg-white rounded-lg shadow-md mb-8 sticky top-24 z-10">
+              <div className="border-b border-gray-200">
+                <nav className="flex">
+                  <button
+                    onClick={() => setActiveTab('around-me')}
+                    className={`flex-1 py-4 px-6 text-center border-b-2 font-medium text-sm transition-colors ${
+                      activeTab === 'around-me'
+                        ? 'border-indigo-500 text-indigo-600 bg-indigo-50'
+                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    }`}
+                  >
+                    <div className="flex items-center justify-center space-x-2">
+                      <span>🌍</span>
+                      <span>Activities Around Me</span>
+                    </div>
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('my-activities')}
+                    className={`flex-1 py-4 px-6 text-center border-b-2 font-medium text-sm transition-colors ${
+                      activeTab === 'my-activities'
+                        ? 'border-indigo-500 text-indigo-600 bg-indigo-50'
+                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    }`}
+                  >
+                    <div className="flex items-center justify-center space-x-2">
+                      <span>📅</span>
+                      <span>My Activities</span>
+                    </div>
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('merchants')}
+                    className={`flex-1 py-4 px-6 text-center border-b-2 font-medium text-sm transition-colors ${
+                      activeTab === 'merchants'
+                        ? 'border-indigo-500 text-indigo-600 bg-indigo-50'
+                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    }`}
+                  >
+                    <div className="flex items-center justify-center space-x-2">
+                      <span>🏪</span>
+                      <span>Merchants</span>
+                    </div>
+                  </button>
+                </nav>
+              </div>
             </div>
-            <button
-              onClick={() => setShowCreateModal(true)}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-md transition-colors"
-            >
-              Create Activity
-            </button>
-          </div>
-        </div>
 
-        {/* Navigation Tabs */}
-        <div className="bg-white rounded-lg shadow-md mb-8">
-          <div className="border-b border-gray-200">
-            <nav className="-mb-px flex">
-              <button
-                onClick={() => setActiveTab('around-me')}
-                className={`py-3 px-6 border-b-2 font-medium text-sm ${
-                  activeTab === 'around-me'
-                    ? 'border-indigo-500 text-indigo-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-              >
-                🌍 Activities Around Me
-              </button>
-              <button
-                onClick={() => setActiveTab('my-activities')}
-                className={`py-3 px-6 border-b-2 font-medium text-sm ${
-                  activeTab === 'my-activities'
-                    ? 'border-indigo-500 text-indigo-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-              >
-                📅 My Activities
-              </button>
-              <button
-                onClick={() => setActiveTab('merchants')}
-                className={`py-3 px-6 border-b-2 font-medium text-sm ${
-                  activeTab === 'merchants'
-                    ? 'border-indigo-500 text-indigo-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-              >
-                🏪 Merchants
-              </button>
-            </nav>
-          </div>
-        </div>
-
-        {/* Content */}
-        {loading ? (
-          <div className="text-center py-8">
-            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
-            <p className="mt-2 text-gray-600">Loading...</p>
-          </div>
-        ) : (
-          <div>
-            {activeTab === 'around-me' && (
+            {/* Content */}
+            {loading ? (
+              <div className="text-center py-12">
+                <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+                <p className="mt-4 text-gray-600">Loading...</p>
+              </div>
+            ) : (
               <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Activities in {user.city}</h3>
-                {activitiesAroundMe.length === 0 ? (
-                  <div className="text-center py-8">
-                    <p className="text-gray-600">No activities found in your area.</p>
-                    <p className="text-gray-500">Be the first to create an activity!</p>
-                  </div>
-                ) : (
-                  <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                    {activitiesAroundMe.map((activity) => (
-                      <ActivityCard
-                        key={activity.id}
-                        activity={activity}
-                        onJoin={handleJoinActivity}
-                        isOwn={activity.creator_id === user.id}
-                      />
-                    ))}
+                {activeTab === 'around-me' && (
+                  <div>
+                    <div className="flex justify-between items-center mb-6">
+                      <h3 className="text-2xl font-bold text-gray-900">Activities in {user.city}</h3>
+                      <span className="text-sm text-gray-500">{activitiesAroundMe.length} activities found</span>
+                    </div>
+                    {activitiesAroundMe.length === 0 ? (
+                      <div className="text-center py-12 bg-white rounded-lg shadow-md">
+                        <p className="text-gray-600 text-lg">No activities found in your area.</p>
+                        <p className="text-gray-500">Be the first to create an activity!</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-6">
+                        {activitiesAroundMe.map((activity) => (
+                          <ActivityCard
+                            key={activity.id}
+                            activity={activity}
+                            onJoin={handleJoinActivity}
+                            isOwn={activity.creator_id === user.id}
+                          />
+                        ))}
+                      </div>
+                    )}
                   </div>
                 )}
-              </div>
-            )}
 
-            {activeTab === 'my-activities' && (
-              <div className="space-y-8">
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Activities I'm Organizing</h3>
-                  {myActivities.created.length === 0 ? (
-                    <p className="text-gray-600">You haven't created any activities yet.</p>
-                  ) : (
-                    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                      {myActivities.created.map((activity) => (
-                        <ActivityCard
-                          key={activity.id}
-                          activity={activity}
-                          showJoinButton={false}
-                        />
-                      ))}
+                {activeTab === 'my-activities' && (
+                  <div className="space-y-8">
+                    <div>
+                      <h3 className="text-xl font-bold text-gray-900 mb-6">Activities I'm Organizing</h3>
+                      {myActivities.created.length === 0 ? (
+                        <div className="text-center py-8 bg-white rounded-lg shadow-md">
+                          <p className="text-gray-600">You haven't created any activities yet.</p>
+                        </div>
+                      ) : (
+                        <div className="space-y-6">
+                          {myActivities.created.map((activity) => (
+                            <ActivityCard
+                              key={activity.id}
+                              activity={activity}
+                              showJoinButton={false}
+                            />
+                          ))}
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
 
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Activities I'm Attending</h3>
-                  {myActivities.joined.length === 0 ? (
-                    <p className="text-gray-600">You haven't joined any activities yet.</p>
-                  ) : (
-                    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                      {myActivities.joined.map((activity) => (
-                        <ActivityCard
-                          key={activity.id}
-                          activity={activity}
-                          showJoinButton={false}
-                        />
-                      ))}
+                    <div>
+                      <h3 className="text-xl font-bold text-gray-900 mb-6">Activities I'm Attending</h3>
+                      {myActivities.joined.length === 0 ? (
+                        <div className="text-center py-8 bg-white rounded-lg shadow-md">
+                          <p className="text-gray-600">You haven't joined any activities yet.</p>
+                        </div>
+                      ) : (
+                        <div className="space-y-6">
+                          {myActivities.joined.map((activity) => (
+                            <ActivityCard
+                              key={activity.id}
+                              activity={activity}
+                              showJoinButton={false}
+                            />
+                          ))}
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {activeTab === 'merchants' && (
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Buddy Discounts in {user.city}</h3>
-                {merchants.length === 0 ? (
-                  <div className="text-center py-8">
-                    <p className="text-gray-600">No merchant partners found in your area.</p>
-                    <p className="text-gray-500">Check back soon for buddy discounts!</p>
                   </div>
-                ) : (
-                  <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                    {merchants.map((merchantData, index) => (
-                      <MerchantCard key={index} merchantData={merchantData} />
-                    ))}
+                )}
+
+                {activeTab === 'merchants' && (
+                  <div>
+                    <div className="flex justify-between items-center mb-6">
+                      <h3 className="text-2xl font-bold text-gray-900">Buddy Discounts in {user.city}</h3>
+                      <span className="text-sm text-gray-500">{merchants.length} businesses found</span>
+                    </div>
+                    {merchants.length === 0 ? (
+                      <div className="text-center py-12 bg-white rounded-lg shadow-md">
+                        <p className="text-gray-600 text-lg">No merchant partners found in your area.</p>
+                        <p className="text-gray-500">Check back soon for buddy discounts!</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-6">
+                        {merchants.map((merchantData, index) => (
+                          <MerchantCard key={index} merchantData={merchantData} />
+                        ))}
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
             )}
           </div>
-        )}
+        </div>
       </div>
 
       <CreateActivityModal
@@ -1114,7 +1170,7 @@ const MerchantDashboard = () => {
   const { merchant } = useAuth();
   
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 pt-20">
       <Header />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="bg-white rounded-lg shadow-md p-6">
