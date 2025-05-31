@@ -768,11 +768,14 @@ const UserDashboard = () => {
 
   const handleCreateActivity = () => {
     setShowCreateModal(false);
+    // Refresh the appropriate tab data
     if (activeTab === 'around-me') {
       fetchActivitiesAroundMe();
     } else if (activeTab === 'my-activities') {
       fetchMyActivities();
     }
+    // Show success message
+    alert('Activity created successfully!');
   };
 
   return (
