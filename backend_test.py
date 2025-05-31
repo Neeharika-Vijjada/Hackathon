@@ -401,6 +401,7 @@ class FindBuddyAPITester:
         # Activity tests
         self.test_create_activity()
         self.test_get_activities_around_me()
+        self.test_activities_with_city_filter()  # Test city filter
         self.test_join_activity()
         self.test_get_my_activities()
         
