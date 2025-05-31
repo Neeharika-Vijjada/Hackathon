@@ -1103,7 +1103,7 @@ const UserDashboard = () => {
     } else if (activeTab === 'find-discounts') {
       fetchMerchants();
     }
-  }, [activeTab, selectedLocationBuddies, selectedLocationDiscounts]);
+  }, [activeTab, locationFilter]);
 
   const fetchActivitiesAroundMe = async () => {
     setLoading(true);
