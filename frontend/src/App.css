@@ -169,3 +169,17 @@
 .section-spacing {
   @apply py-8 lg:py-12;
 }
+
+/* White background theme */
+.app-background {
+  @apply bg-white min-h-screen;
+}
+
+.content-container {
+  @apply bg-white rounded-lg shadow-sm border border-gray-100;
+}
+
+/* Location filter styling */
+.location-filter {
+  @apply text-xs border border-gray-300 rounded-md px-2 py-1 focus:outline-none focus:ring-1 focus:ring-indigo-500 bg-white;
+}
