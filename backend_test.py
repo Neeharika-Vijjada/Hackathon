@@ -176,7 +176,39 @@ class FindBuddyAPITester:
         if not self.test_activity_id:
             print("❌ No activity ID available to join")
             return False
+        
+        # Create a second user to join the activity
+        second_user_email = f"test_user2_{uuid.uuid4().hex[:8]}@example.com"
+        second_user_data = {
+            "name": "Test User 2",
+            "email": second_user_email,
+            "password": self.test_password,
+            "city": "Test City",
+            "phone": "1234567890",
+            "bio": "This is a second test user for API testing",
+            "interests": ["hiking", "reading", "coding"]
+        }
+        
+        # Save current token and user
+        original_token = self.token
+        original_user = self.user
+        
+        # Register second user
+        success, response = self.run_test(
+            "Register Second User",
+            "POST",
+            "auth/register",
+            200,
+            data=second_user_data
+        )
+        
+        if not success:
+            # Restore original token and user
+            self.token = original_token
+            self.user = original_user
+            return False
             
+        # Now join the activity with the second user
         join_data = {
             "activity_id": self.test_activity_id
         }
@@ -191,6 +223,10 @@ class FindBuddyAPITester:
         
         if success:
             print(f"Successfully joined activity: {self.test_activity_id}")
+        
+        # Restore original token and user
+        self.token = original_token
+        self.user = original_user
         return success
 
     def test_get_my_activities(self):
