@@ -250,53 +250,80 @@ async def get_activity_feed(
     limit: int = 20,
     distance_km: Optional[float] = 50
 ):
-    # Get all activities
-    activities_cursor = db.activities.find({"date": {"$gte": datetime.utcnow()}})
+    # Get all activities from other users that are in the future
+    activities_cursor = db.activities.find({
+        "date": {"$gte": datetime.utcnow()},
+        "creator_id": {"$ne": current_user.id}  # Exclude user's own activities
+    })
     all_activities = await activities_cursor.to_list(1000)
     
     # Score and filter activities
     scored_activities = []
     
     for activity_data in all_activities:
-        # Skip user's own activities
-        if activity_data["creator_id"] == current_user.id:
-            continue
-            
         # Calculate interest match score
-        interest_score = calculate_interest_match_score(current_user.interests, activity_data["interests"])
+        interest_score = calculate_interest_match_score(current_user.interests, activity_data.get("interests", []))
         
-        # Calculate distance score (if coordinates available)
-        distance_score = 1.0  # Default score if no coordinates
-        if activity_data.get("latitude") and activity_data.get("longitude"):
-            # For demo, assume user coordinates (in real app, store user location)
-            user_lat, user_lon = 40.7128, -74.0060  # Default NYC coordinates
-            distance = calculate_distance(
-                user_lat, user_lon,
-                activity_data["latitude"], activity_data["longitude"]
-            )
-            if distance <= distance_km:
-                distance_score = max(0.1, 1 - (distance / distance_km))
-            else:
-                continue  # Skip activities outside distance range
+        # Calculate city match score (prioritize same city)
+        city_score = 1.0 if activity_data.get("city", "").lower() == current_user.city.lower() else 0.3
         
         # Calculate time score (prefer sooner activities)
-        days_until_activity = (activity_data["date"] - datetime.utcnow()).days
+        days_until_activity = max(0, (activity_data["date"] - datetime.utcnow()).days)
         time_score = max(0.1, 1 - (days_until_activity / 30))  # Prefer activities within 30 days
         
-        # Combined score
-        total_score = (interest_score * 0.5) + (distance_score * 0.3) + (time_score * 0.2)
+        # Check if activity matches user's category interests (looser matching)
+        category_match = 0.0
+        if activity_data.get("category"):
+            activity_category = activity_data["category"].lower()
+            for user_interest in current_user.interests:
+                if user_interest.lower() in activity_category or activity_category in user_interest.lower():
+                    category_match = 0.5
+                    break
         
-        scored_activities.append({
-            "activity": Activity(**activity_data),
-            "score": total_score
-        })
+        # Combined score with improved weighting
+        # Give more weight to interest matching and city proximity
+        total_score = (interest_score * 0.4) + (city_score * 0.3) + (time_score * 0.2) + (category_match * 0.1)
+        
+        # Include activity if it has any score > 0.1 (more inclusive)
+        if total_score > 0.1:
+            scored_activities.append({
+                "activity": Activity(**activity_data),
+                "score": total_score,
+                "interest_score": interest_score,
+                "city_score": city_score,
+                "time_score": time_score,
+                "category_match": category_match
+            })
     
     # Sort by score and return top activities
     scored_activities.sort(key=lambda x: x["score"], reverse=True)
     
+    # If no high-scoring activities, fall back to all activities in the same city
+    if len(scored_activities) == 0:
+        activities_cursor = db.activities.find({
+            "date": {"$gte": datetime.utcnow()},
+            "creator_id": {"$ne": current_user.id},
+            "city": {"$regex": current_user.city, "$options": "i"}
+        })
+        fallback_activities = await activities_cursor.to_list(limit)
+        scored_activities = [{
+            "activity": Activity(**activity_data),
+            "score": 0.5,
+            "interest_score": 0.1,
+            "city_score": 1.0,
+            "time_score": 0.5,
+            "category_match": 0.0
+        } for activity_data in fallback_activities]
+    
     return {
         "activities": [item["activity"] for item in scored_activities[:limit]],
-        "total_count": len(scored_activities)
+        "total_count": len(scored_activities),
+        "debug_info": {
+            "user_interests": current_user.interests,
+            "user_city": current_user.city,
+            "total_activities_found": len(all_activities),
+            "scored_activities_count": len(scored_activities)
+        }
     }
 
 @api_router.get("/activities")
