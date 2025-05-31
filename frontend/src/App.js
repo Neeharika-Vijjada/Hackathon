@@ -1019,7 +1019,6 @@ const UserDashboard = () => {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('around-me');
   const [activitiesAroundMe, setActivitiesAroundMe] = useState([]);
-  const [myActivities, setMyActivities] = useState({ created: [], joined: [] });
   const [merchants, setMerchants] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -1027,8 +1026,6 @@ const UserDashboard = () => {
   useEffect(() => {
     if (activeTab === 'around-me') {
       fetchActivitiesAroundMe();
-    } else if (activeTab === 'my-activities') {
-      fetchMyActivities();
     } else if (activeTab === 'merchants') {
       fetchMerchants();
     }
@@ -1041,21 +1038,6 @@ const UserDashboard = () => {
       setActivitiesAroundMe(response.data.activities);
     } catch (error) {
       console.error('Error fetching activities around me:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchMyActivities = async () => {
-    setLoading(true);
-    try {
-      const response = await axios.get(`${API}/activities/my`);
-      setMyActivities({
-        created: response.data.created_activities,
-        joined: response.data.joined_activities
-      });
-    } catch (error) {
-      console.error('Error fetching my activities:', error);
     } finally {
       setLoading(false);
     }
@@ -1088,8 +1070,6 @@ const UserDashboard = () => {
     // Refresh the appropriate tab data
     if (activeTab === 'around-me') {
       fetchActivitiesAroundMe();
-    } else if (activeTab === 'my-activities') {
-      fetchMyActivities();
     }
     // Show success message
     alert('Activity created successfully!');
@@ -1126,19 +1106,6 @@ const UserDashboard = () => {
                     </div>
                   </button>
                   <button
-                    onClick={() => setActiveTab('my-activities')}
-                    className={`flex-1 py-4 px-6 text-center border-b-2 font-medium text-sm transition-colors ${
-                      activeTab === 'my-activities'
-                        ? 'border-indigo-500 text-indigo-600 bg-indigo-50'
-                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                    }`}
-                  >
-                    <div className="flex items-center justify-center space-x-2">
-                      <span>📅</span>
-                      <span>My Activities</span>
-                    </div>
-                  </button>
-                  <button
                     onClick={() => setActiveTab('merchants')}
                     className={`flex-1 py-4 px-6 text-center border-b-2 font-medium text-sm transition-colors ${
                       activeTab === 'merchants'
@@ -1155,6 +1122,32 @@ const UserDashboard = () => {
               </div>
             </div>
 
+            {/* Merchant Banner */}
+            {activeTab === 'merchants' && (
+              <div className="mb-8 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-lg p-6 text-white shadow-lg">
+                <div className="text-center">
+                  <h2 className="text-2xl font-bold mb-2">🎉 Bring Your Buddy & Save!</h2>
+                  <p className="text-lg opacity-90">
+                    Enjoy exclusive discounts when you visit with friends. The more buddies, the bigger the savings!
+                  </p>
+                  <div className="flex justify-center items-center mt-4 space-x-4">
+                    <div className="flex items-center">
+                      <span className="text-3xl mr-2">👥</span>
+                      <span className="text-sm">Group Discounts</span>
+                    </div>
+                    <div className="flex items-center">
+                      <span className="text-3xl mr-2">💰</span>
+                      <span className="text-sm">Special Offers</span>
+                    </div>
+                    <div className="flex items-center">
+                      <span className="text-3xl mr-2">🎁</span>
+                      <span className="text-sm">Buddy Rewards</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Content */}
             {loading ? (
               <div className="text-center py-12">
@@ -1166,13 +1159,13 @@ const UserDashboard = () => {
                 {activeTab === 'around-me' && (
                   <div>
                     <div className="flex justify-between items-center mb-6">
-                      <h3 className="text-2xl font-bold text-gray-900">Activities in {user.city}</h3>
+                      <h3 className="text-2xl font-bold text-gray-900">Professional Network Activities</h3>
                       <span className="text-sm text-gray-500">{activitiesAroundMe.length} activities found</span>
                     </div>
                     {activitiesAroundMe.length === 0 ? (
                       <div className="text-center py-12 bg-white rounded-lg shadow-md">
                         <p className="text-gray-600 text-lg">No activities found in your area.</p>
-                        <p className="text-gray-500">Be the first to create an activity!</p>
+                        <p className="text-gray-500">Be the first to create a professional networking activity!</p>
                       </div>
                     ) : (
                       <div className="space-y-6">
@@ -1186,48 +1179,6 @@ const UserDashboard = () => {
                         ))}
                       </div>
                     )}
-                  </div>
-                )}
-
-                {activeTab === 'my-activities' && (
-                  <div className="space-y-8">
-                    <div>
-                      <h3 className="text-xl font-bold text-gray-900 mb-6">Activities I'm Organizing</h3>
-                      {myActivities.created.length === 0 ? (
-                        <div className="text-center py-8 bg-white rounded-lg shadow-md">
-                          <p className="text-gray-600">You haven't created any activities yet.</p>
-                        </div>
-                      ) : (
-                        <div className="space-y-6">
-                          {myActivities.created.map((activity) => (
-                            <ActivityCard
-                              key={activity.id}
-                              activity={activity}
-                              showJoinButton={false}
-                            />
-                          ))}
-                        </div>
-                      )}
-                    </div>
-
-                    <div>
-                      <h3 className="text-xl font-bold text-gray-900 mb-6">Activities I'm Attending</h3>
-                      {myActivities.joined.length === 0 ? (
-                        <div className="text-center py-8 bg-white rounded-lg shadow-md">
-                          <p className="text-gray-600">You haven't joined any activities yet.</p>
-                        </div>
-                      ) : (
-                        <div className="space-y-6">
-                          {myActivities.joined.map((activity) => (
-                            <ActivityCard
-                              key={activity.id}
-                              activity={activity}
-                              showJoinButton={false}
-                            />
-                          ))}
-                        </div>
-                      )}
-                    </div>
                   </div>
                 )}
 
