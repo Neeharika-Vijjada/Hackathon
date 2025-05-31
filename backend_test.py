@@ -9,11 +9,15 @@ class FindBuddyAPITester:
         self.base_url = base_url
         self.token = None
         self.user = None
+        self.merchant = None
+        self.merchant_token = None
         self.tests_run = 0
         self.tests_passed = 0
         self.test_user_email = f"test_user_{uuid.uuid4().hex[:8]}@example.com"
+        self.test_merchant_email = f"test_merchant_{uuid.uuid4().hex[:8]}@example.com"
         self.test_password = "TestPass123!"
         self.test_activity_id = None
+        self.test_discount_id = None
 
     def run_test(self, name, method, endpoint, expected_status, data=None, params=None):
         """Run a single API test"""
@@ -157,18 +161,18 @@ class FindBuddyAPITester:
             return True
         return False
 
-    def test_get_activity_feed(self):
-        """Test getting personalized activity feed"""
+    def test_get_activities_around_me(self):
+        """Test getting activities around me"""
         success, response = self.run_test(
-            "Get Activity Feed",
+            "Get Activities Around Me",
             "GET",
-            "activities/feed",
+            "activities/around-me",
             200
         )
         
         if success:
             activities = response.get('activities', [])
-            print(f"Received {len(activities)} activities in feed")
+            print(f"Received {len(activities)} activities around me")
         return success
 
     def test_join_activity(self):
@@ -297,6 +301,200 @@ class FindBuddyAPITester:
             print(f"User has {len(created)} created activities and {len(joined)} joined activities")
         return success
 
+    # New tests for merchant functionality
+    def test_register_merchant(self):
+        """Test merchant registration"""
+        merchant_data = {
+            "business_name": "Test Business",
+            "email": self.test_merchant_email,
+            "password": self.test_password,
+            "business_type": "restaurant",
+            "address": "123 Test St",
+            "city": "Test City",
+            "phone": "1234567890",
+            "description": "This is a test business for API testing",
+            "website": "https://testbusiness.com"
+        }
+        
+        # Save current token and user
+        original_token = self.token
+        original_user = self.user
+        
+        success, response = self.run_test(
+            "Merchant Registration",
+            "POST",
+            "merchants/register",
+            200,
+            data=merchant_data
+        )
+        
+        if success and 'token' in response:
+            self.merchant_token = response['token']
+            self.merchant = response.get('merchant')
+            print(f"Registered merchant with email: {self.test_merchant_email}")
+            
+            # Store merchant token but restore user token for other tests
+            self.token = original_token
+            self.user = original_user
+            return True
+        
+        # Restore original token and user
+        self.token = original_token
+        self.user = original_user
+        return False
+
+    def test_merchant_login(self):
+        """Test merchant login"""
+        login_data = {
+            "email": self.test_merchant_email,
+            "password": self.test_password
+        }
+        
+        # Save current token and user
+        original_token = self.token
+        original_user = self.user
+        
+        success, response = self.run_test(
+            "Merchant Login",
+            "POST",
+            "merchants/login",
+            200,
+            data=login_data
+        )
+        
+        if success and 'token' in response:
+            self.merchant_token = response['token']
+            self.merchant = response.get('merchant')
+            
+            # Use merchant token temporarily
+            self.token = self.merchant_token
+            
+            # Test getting merchant info
+            success_info, merchant_info = self.run_test(
+                "Get Current Merchant",
+                "GET",
+                "merchants/me",
+                200
+            )
+            
+            if success_info:
+                print(f"Current merchant: {merchant_info.get('business_name', 'Unknown')}")
+            
+            # Restore original token and user
+            self.token = original_token
+            self.user = original_user
+            return success_info
+        
+        # Restore original token and user
+        self.token = original_token
+        self.user = original_user
+        return False
+
+    def test_create_discount_offer(self):
+        """Test creating a discount offer as a merchant"""
+        if not self.merchant_token:
+            print("❌ No merchant token available to create discount")
+            return False
+        
+        # Save current token and user
+        original_token = self.token
+        original_user = self.user
+        
+        # Use merchant token
+        self.token = self.merchant_token
+        
+        # Create discount offer
+        next_month = datetime.now() + timedelta(days=30)
+        discount_data = {
+            "title": "Test Discount",
+            "description": "This is a test discount created by the API tester",
+            "discount_percentage": 20,
+            "minimum_buddies": 2,
+            "valid_until": next_month.isoformat(),
+            "terms_conditions": "Test terms and conditions",
+            "max_redemptions": 100
+        }
+        
+        success, response = self.run_test(
+            "Create Discount Offer",
+            "POST",
+            "merchants/discounts",
+            200,
+            data=discount_data
+        )
+        
+        if success and 'discount' in response:
+            self.test_discount_id = response['discount']['id']
+            print(f"Created discount offer with ID: {self.test_discount_id}")
+            
+            # Test getting merchant's discount offers
+            success_get, discounts_response = self.run_test(
+                "Get Merchant's Discount Offers",
+                "GET",
+                "merchants/discounts/my",
+                200
+            )
+            
+            if success_get:
+                discounts = discounts_response.get('discounts', [])
+                print(f"Merchant has {len(discounts)} discount offers")
+            
+            # Restore original token and user
+            self.token = original_token
+            self.user = original_user
+            return success_get
+        
+        # Restore original token and user
+        self.token = original_token
+        self.user = original_user
+        return False
+
+    def test_get_merchants_near_me(self):
+        """Test getting merchants near me as a user"""
+        success, response = self.run_test(
+            "Get Merchants Near Me",
+            "GET",
+            "merchants/near-me",
+            200
+        )
+        
+        if success:
+            merchants = response.get('merchants', [])
+            print(f"Received {len(merchants)} merchants near me")
+            
+            # Check if our test merchant is in the list
+            if self.merchant:
+                merchant_ids = [m.get('merchant', {}).get('id') for m in merchants]
+                if self.merchant.get('id') in merchant_ids:
+                    print(f"✅ Found our test merchant in the list")
+                else:
+                    print(f"❌ Our test merchant not found in the list")
+        
+        return success
+
+    def test_get_all_discounts(self):
+        """Test getting all discount offers as a user"""
+        success, response = self.run_test(
+            "Get All Discount Offers",
+            "GET",
+            "discounts/all",
+            200
+        )
+        
+        if success:
+            discounts = response.get('discounts', [])
+            print(f"Received {len(discounts)} discount offers")
+            
+            # Check if our test discount is in the list
+            if self.test_discount_id:
+                discount_ids = [d.get('id') for d in discounts]
+                if self.test_discount_id in discount_ids:
+                    print(f"✅ Found our test discount in the list")
+                else:
+                    print(f"❌ Our test discount not found in the list")
+        
+        return success
+
     def run_all_tests(self):
         """Run all API tests in sequence"""
         print("🚀 Starting FindBuddy API Tests")
@@ -319,9 +517,9 @@ class FindBuddyAPITester:
         if not self.test_create_activity():
             print("❌ Creating activity failed")
             
-        # Test getting activity feed
-        if not self.test_get_activity_feed():
-            print("❌ Getting activity feed failed")
+        # Test getting activities around me
+        if not self.test_get_activities_around_me():
+            print("❌ Getting activities around me failed")
             
         # Test joining activity
         if not self.test_join_activity():
@@ -331,6 +529,26 @@ class FindBuddyAPITester:
         if not self.test_get_my_activities():
             print("❌ Getting my activities failed")
             
+        # Test merchant registration
+        if not self.test_register_merchant():
+            print("❌ Merchant registration failed")
+        
+        # Test merchant login
+        if not self.test_merchant_login():
+            print("❌ Merchant login failed")
+        
+        # Test creating discount offer
+        if not self.test_create_discount_offer():
+            print("❌ Creating discount offer failed")
+        
+        # Test getting merchants near me
+        if not self.test_get_merchants_near_me():
+            print("❌ Getting merchants near me failed")
+        
+        # Test getting all discounts
+        if not self.test_get_all_discounts():
+            print("❌ Getting all discounts failed")
+        
         # Test login with the created user
         if not self.test_login():
             print("❌ Login failed")
