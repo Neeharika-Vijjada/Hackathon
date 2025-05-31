@@ -66,6 +66,59 @@ class User(BaseModel):
     created_at: datetime
     profile_photo: Optional[str] = None
 
+class MerchantCreate(BaseModel):
+    business_name: str
+    email: str
+    password: str
+    business_type: str  # restaurant, entertainment, sports, events, etc.
+    address: str
+    city: str
+    phone: str
+    description: str
+    website: Optional[str] = ""
+
+class MerchantLogin(BaseModel):
+    email: str
+    password: str
+
+class Merchant(BaseModel):
+    id: str
+    business_name: str
+    email: str
+    business_type: str
+    address: str
+    city: str
+    phone: str
+    description: str
+    website: Optional[str]
+    verified: bool = False
+    created_at: datetime
+    logo: Optional[str] = None
+
+class DiscountOfferCreate(BaseModel):
+    title: str
+    description: str
+    discount_percentage: int
+    minimum_buddies: int = 2
+    valid_until: datetime
+    terms_conditions: str
+    max_redemptions: Optional[int] = None
+
+class DiscountOffer(BaseModel):
+    id: str
+    merchant_id: str
+    merchant_name: str
+    title: str
+    description: str
+    discount_percentage: int
+    minimum_buddies: int
+    valid_until: datetime
+    terms_conditions: str
+    max_redemptions: Optional[int]
+    current_redemptions: int = 0
+    active: bool = True
+    created_at: datetime
+
 class ActivityCreate(BaseModel):
     title: str
     description: str
@@ -118,9 +171,10 @@ def hash_password(password: str) -> str:
 def verify_password(password: str, hashed: str) -> bool:
     return bcrypt.checkpw(password.encode('utf-8'), hashed.encode('utf-8'))
 
-def create_jwt_token(user_id: str) -> str:
+def create_jwt_token(user_id: str, user_type: str = "user") -> str:
     payload = {
         "user_id": user_id,
+        "user_type": user_type,
         "exp": datetime.utcnow() + timedelta(hours=JWT_EXPIRATION_HOURS)
     }
     return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
@@ -129,14 +183,41 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
     try:
         payload = jwt.decode(credentials.credentials, JWT_SECRET, algorithms=[JWT_ALGORITHM])
         user_id = payload.get("user_id")
+        user_type = payload.get("user_type", "user")
+        
         if not user_id:
             raise HTTPException(status_code=401, detail="Invalid token")
+        
+        if user_type == "merchant":
+            raise HTTPException(status_code=401, detail="Merchant token not valid for user endpoints")
         
         user_data = await db.users.find_one({"id": user_id})
         if not user_data:
             raise HTTPException(status_code=401, detail="User not found")
         
         return User(**user_data)
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Token expired")
+    except jwt.JWTError:
+        raise HTTPException(status_code=401, detail="Invalid token")
+
+async def get_current_merchant(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    try:
+        payload = jwt.decode(credentials.credentials, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+        user_id = payload.get("user_id")
+        user_type = payload.get("user_type", "user")
+        
+        if not user_id:
+            raise HTTPException(status_code=401, detail="Invalid token")
+            
+        if user_type != "merchant":
+            raise HTTPException(status_code=401, detail="User token not valid for merchant endpoints")
+        
+        merchant_data = await db.merchants.find_one({"id": user_id})
+        if not merchant_data:
+            raise HTTPException(status_code=401, detail="Merchant not found")
+        
+        return Merchant(**merchant_data)
     except jwt.ExpiredSignatureError:
         raise HTTPException(status_code=401, detail="Token expired")
     except jwt.JWTError:
@@ -176,7 +257,7 @@ def calculate_interest_match_score(user_interests: List[str], activity_interests
     final_score = max(direct_score, partial_score)
     return min(1.0, final_score)  # Cap at 1.0
 
-# Authentication Routes
+# User Authentication Routes
 @api_router.post("/auth/register")
 async def register_user(user_data: UserCreate):
     # Check if user already exists
@@ -204,7 +285,7 @@ async def register_user(user_data: UserCreate):
     await db.users.insert_one(user_doc)
     
     # Create JWT token
-    token = create_jwt_token(user_id)
+    token = create_jwt_token(user_id, "user")
     
     return {
         "message": "User registered successfully",
@@ -218,7 +299,7 @@ async def login_user(credentials: UserLogin):
     if not user_data or not verify_password(credentials.password, user_data["password"]):
         raise HTTPException(status_code=401, detail="Invalid email or password")
     
-    token = create_jwt_token(user_data["id"])
+    token = create_jwt_token(user_data["id"], "user")
     
     return {
         "message": "Login successful",
@@ -230,7 +311,64 @@ async def login_user(credentials: UserLogin):
 async def get_current_user_info(current_user: User = Depends(get_current_user)):
     return current_user
 
-# Activity Routes
+# Merchant Authentication Routes
+@api_router.post("/merchants/register")
+async def register_merchant(merchant_data: MerchantCreate):
+    # Check if merchant already exists
+    existing_merchant = await db.merchants.find_one({"email": merchant_data.email})
+    if existing_merchant:
+        raise HTTPException(status_code=400, detail="Email already registered")
+    
+    # Hash password and create merchant
+    hashed_password = hash_password(merchant_data.password)
+    merchant_id = str(uuid.uuid4())
+    
+    merchant_doc = {
+        "id": merchant_id,
+        "business_name": merchant_data.business_name,
+        "email": merchant_data.email,
+        "password": hashed_password,
+        "business_type": merchant_data.business_type,
+        "address": merchant_data.address,
+        "city": merchant_data.city,
+        "phone": merchant_data.phone,
+        "description": merchant_data.description,
+        "website": merchant_data.website,
+        "verified": False,
+        "created_at": datetime.utcnow(),
+        "logo": None
+    }
+    
+    await db.merchants.insert_one(merchant_doc)
+    
+    # Create JWT token
+    token = create_jwt_token(merchant_id, "merchant")
+    
+    return {
+        "message": "Merchant registered successfully",
+        "token": token,
+        "merchant": Merchant(**merchant_doc)
+    }
+
+@api_router.post("/merchants/login")
+async def login_merchant(credentials: MerchantLogin):
+    merchant_data = await db.merchants.find_one({"email": credentials.email})
+    if not merchant_data or not verify_password(credentials.password, merchant_data["password"]):
+        raise HTTPException(status_code=401, detail="Invalid email or password")
+    
+    token = create_jwt_token(merchant_data["id"], "merchant")
+    
+    return {
+        "message": "Login successful",
+        "token": token,
+        "merchant": Merchant(**merchant_data)
+    }
+
+@api_router.get("/merchants/me")
+async def get_current_merchant_info(current_merchant: Merchant = Depends(get_current_merchant)):
+    return current_merchant
+
+# Activity Routes (Updated for "Activities Around Me")
 @api_router.post("/activities")
 async def create_activity(activity_data: ActivityCreate, current_user: User = Depends(get_current_user)):
     activity_id = str(uuid.uuid4())
@@ -261,96 +399,26 @@ async def create_activity(activity_data: ActivityCreate, current_user: User = De
         "activity": Activity(**activity_doc)
     }
 
-@api_router.get("/activities/feed")
-async def get_activity_feed(
+@api_router.get("/activities/around-me")
+async def get_activities_around_me(
     current_user: User = Depends(get_current_user),
-    limit: int = 20,
-    distance_km: Optional[float] = 50
+    limit: int = 50,
+    city_filter: Optional[str] = None
 ):
-    # Get all activities from other users that are in the future
-    activities_cursor = db.activities.find({
-        "date": {"$gte": datetime.utcnow()},
-        "creator_id": {"$ne": current_user.id}  # Exclude user's own activities
-    })
-    all_activities = await activities_cursor.to_list(1000)
+    """Get all activities in the area (not personalized)"""
+    query = {"date": {"$gte": datetime.utcnow()}}
     
-    # Score and filter activities
-    scored_activities = []
+    # Filter by city if specified, otherwise use user's city
+    target_city = city_filter or current_user.city
+    query["city"] = {"$regex": target_city, "$options": "i"}
     
-    for activity_data in all_activities:
-        # Calculate interest match score
-        interest_score = calculate_interest_match_score(current_user.interests, activity_data.get("interests", []))
-        
-        # Calculate city match score (prioritize same city)
-        city_score = 1.0 if activity_data.get("city", "").lower() == current_user.city.lower() else 0.3
-        
-        # Calculate time score (prefer sooner activities)
-        days_until_activity = max(0, (activity_data["date"] - datetime.utcnow()).days)
-        time_score = max(0.1, 1 - (days_until_activity / 30))  # Prefer activities within 30 days
-        
-        # Check if activity matches user's category interests (looser matching)
-        category_match = 0.0
-        if activity_data.get("category"):
-            activity_category = activity_data["category"].lower()
-            for user_interest in current_user.interests:
-                if user_interest.lower() in activity_category or activity_category in user_interest.lower():
-                    category_match = 0.5
-                    break
-        
-        # Combined score with improved weighting
-        # Give more weight to interest matching and city proximity
-        total_score = (interest_score * 0.4) + (city_score * 0.3) + (time_score * 0.2) + (category_match * 0.1)
-        
-        # Include activity if it has any score > 0.1 (more inclusive)
-        if total_score > 0.1:
-            scored_activities.append({
-                "activity": Activity(**activity_data),
-                "score": total_score,
-                "interest_score": interest_score,
-                "city_score": city_score,
-                "time_score": time_score,
-                "category_match": category_match
-            })
-    
-    # Sort by score and return top activities
-    scored_activities.sort(key=lambda x: x["score"], reverse=True)
-    
-    # If no high-scoring activities, fall back to all activities in the same city
-    if len(scored_activities) == 0:
-        activities_cursor = db.activities.find({
-            "date": {"$gte": datetime.utcnow()},
-            "creator_id": {"$ne": current_user.id},
-            "city": {"$regex": current_user.city, "$options": "i"}
-        })
-        fallback_activities = await activities_cursor.to_list(limit)
-        scored_activities = [{
-            "activity": Activity(**activity_data),
-            "score": 0.5,
-            "interest_score": 0.1,
-            "city_score": 1.0,
-            "time_score": 0.5,
-            "category_match": 0.0
-        } for activity_data in fallback_activities]
-    
-    return {
-        "activities": [item["activity"] for item in scored_activities[:limit]],
-        "total_count": len(scored_activities),
-        "debug_info": {
-            "user_interests": current_user.interests,
-            "user_city": current_user.city,
-            "total_activities_found": len(all_activities),
-            "scored_activities_count": len(scored_activities)
-        }
-    }
-
-@api_router.get("/activities")
-async def get_all_activities(limit: int = 50):
-    activities_cursor = db.activities.find({"date": {"$gte": datetime.utcnow()}}).sort("created_at", -1)
+    activities_cursor = db.activities.find(query).sort("created_at", -1)
     activities_data = await activities_cursor.to_list(limit)
     
     return {
         "activities": [Activity(**activity) for activity in activities_data],
-        "total_count": len(activities_data)
+        "total_count": len(activities_data),
+        "city": target_city
     }
 
 @api_router.post("/activities/join")
@@ -380,12 +448,136 @@ async def get_my_activities(current_user: User = Depends(get_current_user)):
     # Get activities created by user
     created_activities = await db.activities.find({"creator_id": current_user.id}).to_list(100)
     
-    # Get activities user joined
-    joined_activities = await db.activities.find({"participants": current_user.id, "creator_id": {"$ne": current_user.id}}).to_list(100)
+    # Get activities user joined (excluding ones they created)
+    joined_activities = await db.activities.find({
+        "participants": current_user.id, 
+        "creator_id": {"$ne": current_user.id}
+    }).to_list(100)
     
     return {
         "created_activities": [Activity(**activity) for activity in created_activities],
         "joined_activities": [Activity(**activity) for activity in joined_activities]
+    }
+
+# Merchant and Discount Routes
+@api_router.post("/merchants/discounts")
+async def create_discount_offer(
+    discount_data: DiscountOfferCreate, 
+    current_merchant: Merchant = Depends(get_current_merchant)
+):
+    discount_id = str(uuid.uuid4())
+    
+    discount_doc = {
+        "id": discount_id,
+        "merchant_id": current_merchant.id,
+        "merchant_name": current_merchant.business_name,
+        "title": discount_data.title,
+        "description": discount_data.description,
+        "discount_percentage": discount_data.discount_percentage,
+        "minimum_buddies": discount_data.minimum_buddies,
+        "valid_until": discount_data.valid_until,
+        "terms_conditions": discount_data.terms_conditions,
+        "max_redemptions": discount_data.max_redemptions,
+        "current_redemptions": 0,
+        "active": True,
+        "created_at": datetime.utcnow()
+    }
+    
+    await db.discount_offers.insert_one(discount_doc)
+    
+    return {
+        "message": "Discount offer created successfully",
+        "discount": DiscountOffer(**discount_doc)
+    }
+
+@api_router.get("/merchants/discounts/my")
+async def get_my_discount_offers(current_merchant: Merchant = Depends(get_current_merchant)):
+    discounts_cursor = db.discount_offers.find({"merchant_id": current_merchant.id})
+    discounts_data = await discounts_cursor.to_list(100)
+    
+    return {
+        "discounts": [DiscountOffer(**discount) for discount in discounts_data],
+        "total_count": len(discounts_data)
+    }
+
+@api_router.get("/merchants/near-me")
+async def get_merchants_near_me(
+    current_user: User = Depends(get_current_user),
+    limit: int = 50,
+    business_type: Optional[str] = None
+):
+    """Get merchants and their active offers near the user"""
+    query = {"city": {"$regex": current_user.city, "$options": "i"}}
+    
+    if business_type:
+        query["business_type"] = {"$regex": business_type, "$options": "i"}
+    
+    merchants_cursor = db.merchants.find(query)
+    merchants_data = await merchants_cursor.to_list(limit)
+    
+    # Get active discount offers for these merchants
+    merchant_ids = [merchant["id"] for merchant in merchants_data]
+    discounts_cursor = db.discount_offers.find({
+        "merchant_id": {"$in": merchant_ids},
+        "active": True,
+        "valid_until": {"$gte": datetime.utcnow()}
+    })
+    discounts_data = await discounts_cursor.to_list(1000)
+    
+    # Group discounts by merchant
+    merchant_discounts = {}
+    for discount in discounts_data:
+        merchant_id = discount["merchant_id"]
+        if merchant_id not in merchant_discounts:
+            merchant_discounts[merchant_id] = []
+        merchant_discounts[merchant_id].append(DiscountOffer(**discount))
+    
+    # Combine merchants with their offers
+    merchants_with_offers = []
+    for merchant_data in merchants_data:
+        merchant = Merchant(**merchant_data)
+        offers = merchant_discounts.get(merchant.id, [])
+        merchants_with_offers.append({
+            "merchant": merchant,
+            "active_offers": offers,
+            "offers_count": len(offers)
+        })
+    
+    return {
+        "merchants": merchants_with_offers,
+        "total_count": len(merchants_with_offers)
+    }
+
+@api_router.get("/discounts/all")
+async def get_all_discount_offers(
+    current_user: User = Depends(get_current_user),
+    limit: int = 50,
+    business_type: Optional[str] = None
+):
+    """Get all active discount offers"""
+    # Build query for active offers
+    query = {
+        "active": True,
+        "valid_until": {"$gte": datetime.utcnow()}
+    }
+    
+    discounts_cursor = db.discount_offers.find(query).sort("created_at", -1)
+    discounts_data = await discounts_cursor.to_list(limit)
+    
+    # If business type filter is specified, filter by merchant business type
+    if business_type:
+        merchant_ids = [discount["merchant_id"] for discount in discounts_data]
+        matching_merchants = await db.merchants.find({
+            "id": {"$in": merchant_ids},
+            "business_type": {"$regex": business_type, "$options": "i"}
+        }).to_list(1000)
+        matching_merchant_ids = {merchant["id"] for merchant in matching_merchants}
+        discounts_data = [discount for discount in discounts_data 
+                         if discount["merchant_id"] in matching_merchant_ids]
+    
+    return {
+        "discounts": [DiscountOffer(**discount) for discount in discounts_data],
+        "total_count": len(discounts_data)
     }
 
 # Basic messaging

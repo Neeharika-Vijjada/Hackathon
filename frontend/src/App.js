@@ -10,41 +10,77 @@ const AuthContext = React.createContext();
 
 const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
+  const [merchant, setMerchant] = useState(null);
   const [token, setToken] = useState(localStorage.getItem('token'));
+  const [userType, setUserType] = useState(localStorage.getItem('userType') || 'user');
 
   useEffect(() => {
     if (token) {
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-      fetchCurrentUser();
+      if (userType === 'merchant') {
+        fetchCurrentMerchant();
+      } else {
+        fetchCurrentUser();
+      }
     }
-  }, [token]);
+  }, [token, userType]);
 
   const fetchCurrentUser = async () => {
     try {
       const response = await axios.get(`${API}/auth/me`);
       setUser(response.data);
+      setMerchant(null);
     } catch (error) {
       console.error('Error fetching user:', error);
       logout();
     }
   };
 
-  const login = (token, userData) => {
+  const fetchCurrentMerchant = async () => {
+    try {
+      const response = await axios.get(`${API}/merchants/me`);
+      setMerchant(response.data);
+      setUser(null);
+    } catch (error) {
+      console.error('Error fetching merchant:', error);
+      logout();
+    }
+  };
+
+  const login = (token, userData, type = 'user') => {
     localStorage.setItem('token', token);
+    localStorage.setItem('userType', type);
     setToken(token);
-    setUser(userData);
+    setUserType(type);
+    if (type === 'merchant') {
+      setMerchant(userData);
+      setUser(null);
+    } else {
+      setUser(userData);
+      setMerchant(null);
+    }
     axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
   };
 
   const logout = () => {
     localStorage.removeItem('token');
+    localStorage.removeItem('userType');
     setToken(null);
     setUser(null);
+    setMerchant(null);
+    setUserType('user');
     delete axios.defaults.headers.common['Authorization'];
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, isAuthenticated: !!user }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      merchant, 
+      userType, 
+      login, 
+      logout, 
+      isAuthenticated: !!(user || merchant) 
+    }}>
       {children}
     </AuthContext.Provider>
   );
@@ -54,7 +90,8 @@ const useAuth = () => React.useContext(AuthContext);
 
 // Components
 const Header = () => {
-  const { user, logout } = useAuth();
+  const { user, merchant, logout, userType } = useAuth();
+  const currentEntity = user || merchant;
 
   return (
     <header className="bg-white shadow-lg border-b border-gray-200">
@@ -62,11 +99,15 @@ const Header = () => {
         <div className="flex justify-between items-center py-4">
           <div className="flex items-center space-x-4">
             <h1 className="text-3xl font-bold text-indigo-600">FindBuddy</h1>
-            <p className="text-gray-500 hidden sm:block">Find your activity companions</p>
+            <p className="text-gray-500 hidden sm:block">
+              {userType === 'merchant' ? 'Business Partner Dashboard' : 'Find your activity companions'}
+            </p>
           </div>
-          {user && (
+          {currentEntity && (
             <div className="flex items-center space-x-4">
-              <span className="text-gray-700">Welcome, {user.name}!</span>
+              <span className="text-gray-700">
+                Welcome, {userType === 'merchant' ? merchant?.business_name : user?.name}!
+              </span>
               <button
                 onClick={logout}
                 className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition-colors"
@@ -83,6 +124,7 @@ const Header = () => {
 
 const AuthForm = () => {
   const [isLogin, setIsLogin] = useState(true);
+  const [userType, setUserType] = useState('user');
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -90,7 +132,13 @@ const AuthForm = () => {
     city: '',
     phone: '',
     bio: '',
-    interests: ''
+    interests: '',
+    // Merchant fields
+    business_name: '',
+    business_type: '',
+    address: '',
+    description: '',
+    website: ''
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -102,16 +150,37 @@ const AuthForm = () => {
     setError('');
 
     try {
-      const endpoint = isLogin ? '/auth/login' : '/auth/register';
-      const payload = isLogin 
-        ? { email: formData.email, password: formData.password }
-        : {
+      const endpoint = userType === 'merchant' 
+        ? (isLogin ? '/merchants/login' : '/merchants/register')
+        : (isLogin ? '/auth/login' : '/auth/register');
+
+      let payload;
+      if (isLogin) {
+        payload = { email: formData.email, password: formData.password };
+      } else {
+        if (userType === 'merchant') {
+          payload = {
+            business_name: formData.business_name,
+            email: formData.email,
+            password: formData.password,
+            business_type: formData.business_type,
+            address: formData.address,
+            city: formData.city,
+            phone: formData.phone,
+            description: formData.description,
+            website: formData.website
+          };
+        } else {
+          payload = {
             ...formData,
             interests: formData.interests.split(',').map(i => i.trim()).filter(i => i)
           };
+        }
+      }
 
       const response = await axios.post(`${API}${endpoint}`, payload);
-      login(response.data.token, response.data.user);
+      const userData = userType === 'merchant' ? response.data.merchant : response.data.user;
+      login(response.data.token, userData, userType);
     } catch (error) {
       setError(error.response?.data?.detail || 'An error occurred');
     } finally {
@@ -141,6 +210,31 @@ const AuthForm = () => {
         </div>
 
         <div className="bg-white py-8 px-6 shadow-xl rounded-lg">
+          {/* User Type Toggle */}
+          <div className="mb-6">
+            <div className="flex rounded-lg bg-gray-100 p-1">
+              <button
+                type="button"
+                onClick={() => setUserType('user')}
+                className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+                  userType === 'user' ? 'bg-white text-indigo-600 shadow' : 'text-gray-500'
+                }`}
+              >
+                User
+              </button>
+              <button
+                type="button"
+                onClick={() => setUserType('merchant')}
+                className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+                  userType === 'merchant' ? 'bg-white text-indigo-600 shadow' : 'text-gray-500'
+                }`}
+              >
+                Business
+              </button>
+            </div>
+          </div>
+
+          {/* Login/Register Toggle */}
           <div className="mb-6">
             <div className="flex rounded-lg bg-gray-100 p-1">
               <button
@@ -173,49 +267,125 @@ const AuthForm = () => {
           <form onSubmit={handleSubmit} className="space-y-4">
             {!isLogin && (
               <>
-                <input
-                  type="text"
-                  name="name"
-                  placeholder="Full Name"
-                  value={formData.name}
-                  onChange={handleChange}
-                  required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                />
-                <input
-                  type="text"
-                  name="city"
-                  placeholder="City"
-                  value={formData.city}
-                  onChange={handleChange}
-                  required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                />
-                <input
-                  type="tel"
-                  name="phone"
-                  placeholder="Phone Number"
-                  value={formData.phone}
-                  onChange={handleChange}
-                  required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                />
-                <textarea
-                  name="bio"
-                  placeholder="Brief bio (optional)"
-                  value={formData.bio}
-                  onChange={handleChange}
-                  rows="2"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                />
-                <input
-                  type="text"
-                  name="interests"
-                  placeholder="Interests (comma separated: hiking, coffee, music)"
-                  value={formData.interests}
-                  onChange={handleChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                />
+                {userType === 'user' ? (
+                  <>
+                    <input
+                      type="text"
+                      name="name"
+                      placeholder="Full Name"
+                      value={formData.name}
+                      onChange={handleChange}
+                      required
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    />
+                    <input
+                      type="text"
+                      name="city"
+                      placeholder="City"
+                      value={formData.city}
+                      onChange={handleChange}
+                      required
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    />
+                    <input
+                      type="tel"
+                      name="phone"
+                      placeholder="Phone Number"
+                      value={formData.phone}
+                      onChange={handleChange}
+                      required
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    />
+                    <textarea
+                      name="bio"
+                      placeholder="Brief bio (optional)"
+                      value={formData.bio}
+                      onChange={handleChange}
+                      rows="2"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    />
+                    <input
+                      type="text"
+                      name="interests"
+                      placeholder="Interests (comma separated: hiking, coffee, music)"
+                      value={formData.interests}
+                      onChange={handleChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    />
+                  </>
+                ) : (
+                  <>
+                    <input
+                      type="text"
+                      name="business_name"
+                      placeholder="Business Name"
+                      value={formData.business_name}
+                      onChange={handleChange}
+                      required
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    />
+                    <select
+                      name="business_type"
+                      value={formData.business_type}
+                      onChange={handleChange}
+                      required
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    >
+                      <option value="">Select Business Type</option>
+                      <option value="restaurant">Restaurant</option>
+                      <option value="entertainment">Entertainment</option>
+                      <option value="sports">Sports & Recreation</option>
+                      <option value="events">Events & Venues</option>
+                      <option value="retail">Retail</option>
+                      <option value="services">Services</option>
+                      <option value="other">Other</option>
+                    </select>
+                    <input
+                      type="text"
+                      name="address"
+                      placeholder="Business Address"
+                      value={formData.address}
+                      onChange={handleChange}
+                      required
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    />
+                    <input
+                      type="text"
+                      name="city"
+                      placeholder="City"
+                      value={formData.city}
+                      onChange={handleChange}
+                      required
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    />
+                    <input
+                      type="tel"
+                      name="phone"
+                      placeholder="Business Phone"
+                      value={formData.phone}
+                      onChange={handleChange}
+                      required
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    />
+                    <textarea
+                      name="description"
+                      placeholder="Business Description"
+                      value={formData.description}
+                      onChange={handleChange}
+                      required
+                      rows="3"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    />
+                    <input
+                      type="url"
+                      name="website"
+                      placeholder="Website (optional)"
+                      value={formData.website}
+                      onChange={handleChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    />
+                  </>
+                )}
               </>
             )}
             
@@ -244,7 +414,7 @@ const AuthForm = () => {
               disabled={loading}
               className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-md transition-colors disabled:opacity-50"
             >
-              {loading ? 'Please wait...' : (isLogin ? 'Login' : 'Create Account')}
+              {loading ? 'Please wait...' : (isLogin ? 'Login' : `Create ${userType === 'merchant' ? 'Business' : 'User'} Account`)}
             </button>
           </form>
         </div>
@@ -253,7 +423,8 @@ const AuthForm = () => {
   );
 };
 
-const ActivityCard = ({ activity, onJoin, showJoinButton = true }) => {
+// User Components
+const ActivityCard = ({ activity, onJoin, showJoinButton = true, isOwn = false }) => {
   const formatDate = (dateString) => {
     const date = new Date(dateString);
     return date.toLocaleDateString() + ' at ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -304,13 +475,70 @@ const ActivityCard = ({ activity, onJoin, showJoinButton = true }) => {
         </div>
       )}
 
-      {showJoinButton && (
+      {showJoinButton && !isOwn && (
         <button
           onClick={() => onJoin(activity.id)}
           className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-md transition-colors"
         >
           Join Activity
         </button>
+      )}
+    </div>
+  );
+};
+
+const MerchantCard = ({ merchantData }) => {
+  const { merchant, active_offers, offers_count } = merchantData;
+
+  return (
+    <div className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow p-6 border border-gray-200">
+      <div className="flex justify-between items-start mb-3">
+        <h3 className="text-xl font-semibold text-gray-900">{merchant.business_name}</h3>
+        <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-sm font-medium">
+          {merchant.business_type}
+        </span>
+      </div>
+      
+      <p className="text-gray-600 mb-3">{merchant.description}</p>
+      
+      <div className="space-y-2 text-sm text-gray-500 mb-4">
+        <div className="flex items-center">
+          <span className="font-medium">📍 Location:</span>
+          <span className="ml-2">{merchant.address}, {merchant.city}</span>
+        </div>
+        <div className="flex items-center">
+          <span className="font-medium">📞 Phone:</span>
+          <span className="ml-2">{merchant.phone}</span>
+        </div>
+        {merchant.website && (
+          <div className="flex items-center">
+            <span className="font-medium">🌐 Website:</span>
+            <a href={merchant.website} target="_blank" rel="noopener noreferrer" className="ml-2 text-indigo-600 hover:underline">
+              {merchant.website}
+            </a>
+          </div>
+        )}
+      </div>
+
+      {offers_count > 0 && (
+        <div className="border-t pt-4">
+          <h4 className="font-semibold text-gray-900 mb-2">🎁 Buddy Discounts ({offers_count})</h4>
+          <div className="space-y-2">
+            {active_offers.slice(0, 2).map((offer, index) => (
+              <div key={index} className="bg-yellow-50 border border-yellow-200 rounded p-3">
+                <h5 className="font-medium text-yellow-800">{offer.title}</h5>
+                <p className="text-sm text-yellow-700">{offer.description}</p>
+                <div className="flex justify-between items-center mt-2">
+                  <span className="font-bold text-yellow-800">{offer.discount_percentage}% OFF</span>
+                  <span className="text-xs text-yellow-600">Min {offer.minimum_buddies} people</span>
+                </div>
+              </div>
+            ))}
+            {offers_count > 2 && (
+              <p className="text-sm text-gray-500">+{offers_count - 2} more offers</p>
+            )}
+          </div>
+        </div>
       )}
     </div>
   );
@@ -373,12 +601,7 @@ const CreateActivityModal = ({ isOpen, onClose, onCreate }) => {
         <div className="p-6">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-2xl font-bold text-gray-900">Create New Activity</h2>
-            <button
-              onClick={onClose}
-              className="text-gray-400 hover:text-gray-600"
-            >
-              ✕
-            </button>
+            <button onClick={onClose} className="text-gray-400 hover:text-gray-600">✕</button>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -391,7 +614,6 @@ const CreateActivityModal = ({ isOpen, onClose, onCreate }) => {
               required
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
-
             <textarea
               name="description"
               placeholder="Activity Description"
@@ -401,7 +623,6 @@ const CreateActivityModal = ({ isOpen, onClose, onCreate }) => {
               rows="3"
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
-
             <input
               type="datetime-local"
               name="date"
@@ -410,7 +631,6 @@ const CreateActivityModal = ({ isOpen, onClose, onCreate }) => {
               required
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
-
             <input
               type="text"
               name="location"
@@ -420,7 +640,6 @@ const CreateActivityModal = ({ isOpen, onClose, onCreate }) => {
               required
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
-
             <input
               type="text"
               name="city"
@@ -430,7 +649,6 @@ const CreateActivityModal = ({ isOpen, onClose, onCreate }) => {
               required
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
-
             <input
               type="text"
               name="category"
@@ -440,7 +658,6 @@ const CreateActivityModal = ({ isOpen, onClose, onCreate }) => {
               required
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
-
             <input
               type="number"
               name="max_participants"
@@ -449,7 +666,6 @@ const CreateActivityModal = ({ isOpen, onClose, onCreate }) => {
               onChange={handleChange}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
-
             <input
               type="text"
               name="interests"
@@ -482,29 +698,32 @@ const CreateActivityModal = ({ isOpen, onClose, onCreate }) => {
   );
 };
 
-const Dashboard = () => {
+const UserDashboard = () => {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState('feed');
-  const [activities, setActivities] = useState([]);
+  const [activeTab, setActiveTab] = useState('around-me');
+  const [activitiesAroundMe, setActivitiesAroundMe] = useState([]);
   const [myActivities, setMyActivities] = useState({ created: [], joined: [] });
+  const [merchants, setMerchants] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
 
   useEffect(() => {
-    if (activeTab === 'feed') {
-      fetchActivityFeed();
+    if (activeTab === 'around-me') {
+      fetchActivitiesAroundMe();
     } else if (activeTab === 'my-activities') {
       fetchMyActivities();
+    } else if (activeTab === 'merchants') {
+      fetchMerchants();
     }
   }, [activeTab]);
 
-  const fetchActivityFeed = async () => {
+  const fetchActivitiesAroundMe = async () => {
     setLoading(true);
     try {
-      const response = await axios.get(`${API}/activities/feed`);
-      setActivities(response.data.activities);
+      const response = await axios.get(`${API}/activities/around-me`);
+      setActivitiesAroundMe(response.data.activities);
     } catch (error) {
-      console.error('Error fetching activity feed:', error);
+      console.error('Error fetching activities around me:', error);
     } finally {
       setLoading(false);
     }
@@ -525,11 +744,23 @@ const Dashboard = () => {
     }
   };
 
+  const fetchMerchants = async () => {
+    setLoading(true);
+    try {
+      const response = await axios.get(`${API}/merchants/near-me`);
+      setMerchants(response.data.merchants);
+    } catch (error) {
+      console.error('Error fetching merchants:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleJoinActivity = async (activityId) => {
     try {
       await axios.post(`${API}/activities/join`, { activity_id: activityId });
       alert('Successfully joined activity!');
-      fetchActivityFeed(); // Refresh the feed
+      fetchActivitiesAroundMe();
     } catch (error) {
       alert(error.response?.data?.detail || 'Error joining activity');
     }
@@ -537,8 +768,8 @@ const Dashboard = () => {
 
   const handleCreateActivity = () => {
     setShowCreateModal(false);
-    if (activeTab === 'feed') {
-      fetchActivityFeed();
+    if (activeTab === 'around-me') {
+      fetchActivitiesAroundMe();
     } else if (activeTab === 'my-activities') {
       fetchMyActivities();
     }
@@ -581,14 +812,14 @@ const Dashboard = () => {
           <div className="border-b border-gray-200">
             <nav className="-mb-px flex">
               <button
-                onClick={() => setActiveTab('feed')}
+                onClick={() => setActiveTab('around-me')}
                 className={`py-3 px-6 border-b-2 font-medium text-sm ${
-                  activeTab === 'feed'
+                  activeTab === 'around-me'
                     ? 'border-indigo-500 text-indigo-600'
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                 }`}
               >
-                Activity Feed
+                🌍 Activities Around Me
               </button>
               <button
                 onClick={() => setActiveTab('my-activities')}
@@ -598,7 +829,17 @@ const Dashboard = () => {
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                 }`}
               >
-                My Activities
+                📅 My Activities
+              </button>
+              <button
+                onClick={() => setActiveTab('merchants')}
+                className={`py-3 px-6 border-b-2 font-medium text-sm ${
+                  activeTab === 'merchants'
+                    ? 'border-indigo-500 text-indigo-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                🏪 Merchants
               </button>
             </nav>
           </div>
@@ -608,24 +849,26 @@ const Dashboard = () => {
         {loading ? (
           <div className="text-center py-8">
             <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
-            <p className="mt-2 text-gray-600">Loading activities...</p>
+            <p className="mt-2 text-gray-600">Loading...</p>
           </div>
         ) : (
           <div>
-            {activeTab === 'feed' && (
+            {activeTab === 'around-me' && (
               <div>
-                {activities.length === 0 ? (
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Activities in {user.city}</h3>
+                {activitiesAroundMe.length === 0 ? (
                   <div className="text-center py-8">
-                    <p className="text-gray-600">No activities found matching your interests.</p>
-                    <p className="text-gray-500">Try creating an activity or updating your interests!</p>
+                    <p className="text-gray-600">No activities found in your area.</p>
+                    <p className="text-gray-500">Be the first to create an activity!</p>
                   </div>
                 ) : (
                   <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                    {activities.map((activity) => (
+                    {activitiesAroundMe.map((activity) => (
                       <ActivityCard
                         key={activity.id}
                         activity={activity}
                         onJoin={handleJoinActivity}
+                        isOwn={activity.creator_id === user.id}
                       />
                     ))}
                   </div>
@@ -636,7 +879,7 @@ const Dashboard = () => {
             {activeTab === 'my-activities' && (
               <div className="space-y-8">
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Created by You</h3>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Activities I'm Organizing</h3>
                   {myActivities.created.length === 0 ? (
                     <p className="text-gray-600">You haven't created any activities yet.</p>
                   ) : (
@@ -653,7 +896,7 @@ const Dashboard = () => {
                 </div>
 
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Joined Activities</h3>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Activities I'm Attending</h3>
                   {myActivities.joined.length === 0 ? (
                     <p className="text-gray-600">You haven't joined any activities yet.</p>
                   ) : (
@@ -670,6 +913,24 @@ const Dashboard = () => {
                 </div>
               </div>
             )}
+
+            {activeTab === 'merchants' && (
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Buddy Discounts in {user.city}</h3>
+                {merchants.length === 0 ? (
+                  <div className="text-center py-8">
+                    <p className="text-gray-600">No merchant partners found in your area.</p>
+                    <p className="text-gray-500">Check back soon for buddy discounts!</p>
+                  </div>
+                ) : (
+                  <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                    {merchants.map((merchantData, index) => (
+                      <MerchantCard key={index} merchantData={merchantData} />
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -679,6 +940,24 @@ const Dashboard = () => {
         onClose={() => setShowCreateModal(false)}
         onCreate={handleCreateActivity}
       />
+    </div>
+  );
+};
+
+// Merchant Dashboard (placeholder)
+const MerchantDashboard = () => {
+  const { merchant } = useAuth();
+  
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <Header />
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="bg-white rounded-lg shadow-md p-6">
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">Welcome, {merchant?.business_name}!</h2>
+          <p className="text-gray-600">Merchant dashboard coming soon...</p>
+          <p className="text-gray-500">Manage your buddy discounts and track redemptions.</p>
+        </div>
+      </div>
     </div>
   );
 };
@@ -694,9 +973,13 @@ function App() {
 }
 
 const AuthApp = () => {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, userType } = useAuth();
 
-  return isAuthenticated ? <Dashboard /> : <AuthForm />;
+  if (!isAuthenticated) {
+    return <AuthForm />;
+  }
+
+  return userType === 'merchant' ? <MerchantDashboard /> : <UserDashboard />;
 };
 
 export default App;
