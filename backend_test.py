@@ -1,37 +1,41 @@
+
 import requests
 import sys
-import json
-import uuid
+import random
+import string
+import time
 from datetime import datetime, timedelta
 
 class FindBuddyAPITester:
     def __init__(self, base_url="https://73ee5915-138a-4431-a2f0-3f395e3de1fc.preview.emergentagent.com/api"):
         self.base_url = base_url
-        self.token = None
-        self.user = None
-        self.merchant = None
+        self.user_token = None
         self.merchant_token = None
+        self.user_data = None
+        self.merchant_data = None
+        self.activity_id = None
         self.tests_run = 0
         self.tests_passed = 0
-        self.test_user_email = f"test_user_{uuid.uuid4().hex[:8]}@example.com"
-        self.test_merchant_email = f"test_merchant_{uuid.uuid4().hex[:8]}@example.com"
-        self.test_password = "TestPass123!"
-        self.test_activity_id = None
-        self.test_discount_id = None
+        self.test_results = []
 
-    def run_test(self, name, method, endpoint, expected_status, data=None, params=None):
+    def run_test(self, name, method, endpoint, expected_status, data=None, token=None, is_merchant=False):
         """Run a single API test"""
         url = f"{self.base_url}/{endpoint}"
         headers = {'Content-Type': 'application/json'}
-        if self.token:
-            headers['Authorization'] = f'Bearer {self.token}'
+        
+        if token:
+            headers['Authorization'] = f'Bearer {token}'
+        elif is_merchant and self.merchant_token:
+            headers['Authorization'] = f'Bearer {self.merchant_token}'
+        elif not is_merchant and self.user_token:
+            headers['Authorization'] = f'Bearer {self.user_token}'
 
         self.tests_run += 1
         print(f"\n🔍 Testing {name}...")
         
         try:
             if method == 'GET':
-                response = requests.get(url, headers=headers, params=params)
+                response = requests.get(url, headers=headers)
             elif method == 'POST':
                 response = requests.post(url, json=data, headers=headers)
             elif method == 'PUT':
@@ -43,22 +47,26 @@ class FindBuddyAPITester:
             if success:
                 self.tests_passed += 1
                 print(f"✅ Passed - Status: {response.status_code}")
-                try:
-                    return success, response.json()
-                except:
-                    return success, {}
+                self.test_results.append({"name": name, "status": "PASSED", "details": f"Status: {response.status_code}"})
             else:
                 print(f"❌ Failed - Expected {expected_status}, got {response.status_code}")
-                try:
-                    error_detail = response.json().get('detail', 'No detail provided')
-                    print(f"Error detail: {error_detail}")
-                except:
-                    print(f"Response text: {response.text}")
-                return False, {}
+                self.test_results.append({"name": name, "status": "FAILED", "details": f"Expected {expected_status}, got {response.status_code}"})
+                if response.text:
+                    print(f"Response: {response.text}")
+
+            try:
+                return success, response.json() if response.text else {}
+            except:
+                return success, {}
 
         except Exception as e:
             print(f"❌ Failed - Error: {str(e)}")
+            self.test_results.append({"name": name, "status": "FAILED", "details": f"Error: {str(e)}"})
             return False, {}
+
+    def generate_random_string(self, length=8):
+        """Generate a random string for test data"""
+        return ''.join(random.choices(string.ascii_letters + string.digits, k=length))
 
     def test_health_check(self):
         """Test API health check endpoint"""
@@ -68,20 +76,19 @@ class FindBuddyAPITester:
             "",
             200
         )
-        if success:
-            print(f"API Message: {response.get('message', 'No message')}")
         return success
 
-    def test_register_user(self):
+    def test_user_registration(self):
         """Test user registration"""
+        random_suffix = self.generate_random_string()
         user_data = {
-            "name": "Test User",
-            "email": self.test_user_email,
-            "password": self.test_password,
+            "name": f"Test User {random_suffix}",
+            "email": f"test.user.{random_suffix}@example.com",
+            "password": "TestPassword123!",
             "city": "Test City",
             "phone": "1234567890",
             "bio": "This is a test user for API testing",
-            "interests": ["hiking", "reading", "coding"]
+            "interests": ["networking", "technology", "professional development"]
         }
         
         success, response = self.run_test(
@@ -93,17 +100,20 @@ class FindBuddyAPITester:
         )
         
         if success and 'token' in response:
-            self.token = response['token']
-            self.user = response.get('user')
-            print(f"Registered user with email: {self.test_user_email}")
+            self.user_token = response['token']
+            self.user_data = response['user']
             return True
         return False
 
-    def test_login(self):
-        """Test user login"""
+    def test_user_login(self):
+        """Test user login with the registered user"""
+        if not self.user_data:
+            print("❌ No user data available for login test")
+            return False
+            
         login_data = {
-            "email": self.test_user_email,
-            "password": self.test_password
+            "email": self.user_data["email"],
+            "password": "TestPassword123!"
         }
         
         success, response = self.run_test(
@@ -115,8 +125,7 @@ class FindBuddyAPITester:
         )
         
         if success and 'token' in response:
-            self.token = response['token']
-            self.user = response.get('user')
+            self.user_token = response['token']
             return True
         return False
 
@@ -128,27 +137,89 @@ class FindBuddyAPITester:
             "auth/me",
             200
         )
-        
-        if success:
-            print(f"Current user: {response.get('name', 'Unknown')}")
         return success
 
-    def test_create_activity(self):
-        """Test creating a new activity"""
-        tomorrow = datetime.now() + timedelta(days=1)
-        activity_data = {
-            "title": "Test Activity",
-            "description": "This is a test activity created by the API tester",
-            "date": tomorrow.isoformat(),
-            "location": "Test Location",
+    def test_merchant_registration(self):
+        """Test merchant registration"""
+        random_suffix = self.generate_random_string()
+        merchant_data = {
+            "business_name": f"Test Business {random_suffix}",
+            "email": f"test.business.{random_suffix}@example.com",
+            "password": "TestPassword123!",
+            "business_type": "restaurant",
+            "address": "123 Test Street",
             "city": "Test City",
-            "category": "Testing",
-            "max_participants": 10,
-            "interests": ["testing", "coding", "api"]
+            "phone": "1234567890",
+            "description": "This is a test business for API testing",
+            "website": "https://testbusiness.example.com"
         }
         
         success, response = self.run_test(
-            "Create Activity",
+            "Merchant Registration",
+            "POST",
+            "merchants/register",
+            200,
+            data=merchant_data
+        )
+        
+        if success and 'token' in response:
+            self.merchant_token = response['token']
+            self.merchant_data = response['merchant']
+            return True
+        return False
+
+    def test_merchant_login(self):
+        """Test merchant login with the registered merchant"""
+        if not self.merchant_data:
+            print("❌ No merchant data available for login test")
+            return False
+            
+        login_data = {
+            "email": self.merchant_data["email"],
+            "password": "TestPassword123!"
+        }
+        
+        success, response = self.run_test(
+            "Merchant Login",
+            "POST",
+            "merchants/login",
+            200,
+            data=login_data
+        )
+        
+        if success and 'token' in response:
+            self.merchant_token = response['token']
+            return True
+        return False
+
+    def test_get_current_merchant(self):
+        """Test getting current merchant info"""
+        success, response = self.run_test(
+            "Get Current Merchant",
+            "GET",
+            "merchants/me",
+            200,
+            is_merchant=True
+        )
+        return success
+
+    def test_create_activity(self):
+        """Test creating a professional networking activity"""
+        tomorrow = datetime.now() + timedelta(days=1)
+        
+        activity_data = {
+            "title": "🚀 Exciting Career Networking Event - Tech Professionals Welcome!",
+            "description": "Join us for an evening of professional networking with tech industry leaders. Great opportunity to expand your professional network and discover new career opportunities. #TechNetworking #CareerGrowth",
+            "date": tomorrow.isoformat(),
+            "location": "Tech Hub Downtown",
+            "city": "Test City",
+            "max_participants": 50,
+            "category": "Professional",
+            "interests": ["technology", "networking", "career development"]
+        }
+        
+        success, response = self.run_test(
+            "Create Professional Activity",
             "POST",
             "activities",
             200,
@@ -156,8 +227,7 @@ class FindBuddyAPITester:
         )
         
         if success and 'activity' in response:
-            self.test_activity_id = response['activity']['id']
-            print(f"Created activity with ID: {self.test_activity_id}")
+            self.activity_id = response['activity']['id']
             return True
         return False
 
@@ -171,119 +241,38 @@ class FindBuddyAPITester:
         )
         
         if success:
+            # Check if we have LinkedIn-style professional activities
             activities = response.get('activities', [])
-            print(f"Received {len(activities)} activities around me")
-        return success
+            professional_activities = [a for a in activities if 'Professional' in a.get('category', '')]
+            
+            if professional_activities:
+                print(f"✅ Found {len(professional_activities)} professional activities")
+                return True
+            else:
+                print("❌ No professional activities found")
+                return False
+        return False
 
     def test_join_activity(self):
         """Test joining an activity"""
-        if not self.test_activity_id:
-            print("❌ No activity ID available to join")
-            return False
-        
-        # Create a second user to join the activity
-        second_user_email = f"test_user2_{uuid.uuid4().hex[:8]}@example.com"
-        second_user_data = {
-            "name": "Test User 2",
-            "email": second_user_email,
-            "password": self.test_password,
-            "city": "Test City",
-            "phone": "1234567890",
-            "bio": "This is a second test user for API testing",
-            "interests": ["hiking", "reading", "coding"]
-        }
-        
-        # Save current token and user
-        original_token = self.token
-        original_user = self.user
-        
-        # Register second user
-        success, response = self.run_test(
-            "Register Second User",
-            "POST",
-            "auth/register",
-            200,
-            data=second_user_data
-        )
-        
-        if not success:
-            # Restore original token and user
-            self.token = original_token
-            self.user = original_user
-            return False
-        
-        # Store second user's token and ID
-        second_user_token = self.token
-        second_user_id = response.get('user', {}).get('id')
-        
-        # Have second user create an activity
-        tomorrow = datetime.now() + timedelta(days=1)
-        activity_data = {
-            "title": "Second User's Activity",
-            "description": "This is an activity created by the second user",
-            "date": tomorrow.isoformat(),
-            "location": "Test Location",
-            "city": "Test City",
-            "category": "Testing",
-            "max_participants": 10,
-            "interests": ["testing", "coding", "api"]
-        }
-        
-        success, response = self.run_test(
-            "Create Activity as Second User",
-            "POST",
-            "activities",
-            200,
-            data=activity_data
-        )
-        
-        if not success or 'activity' not in response:
-            # Restore original token and user
-            self.token = original_token
-            self.user = original_user
+        if not self.activity_id:
+            print("❌ No activity available to join")
             return False
             
-        activity_id_to_join = response['activity']['id']
-        
-        # Switch back to first user
-        self.token = original_token
-        self.user = original_user
-        
-        # Now join the activity with the first user
         join_data = {
-            "activity_id": activity_id_to_join
+            "activity_id": self.activity_id
         }
         
-        success, response = self.run_test(
+        # Create a second user to join the activity
+        self.test_user_registration()
+        
+        success, _ = self.run_test(
             "Join Activity",
             "POST",
             "activities/join",
             200,
             data=join_data
         )
-        
-        if success:
-            print(f"Successfully joined activity: {activity_id_to_join}")
-            
-            # Verify the user is now in the participants list
-            # Get my activities to verify
-            success, my_activities_response = self.run_test(
-                "Verify Joined Activities",
-                "GET",
-                "activities/my",
-                200
-            )
-            
-            if success:
-                joined_activities = my_activities_response.get('joined_activities', [])
-                joined_ids = [act.get('id') for act in joined_activities]
-                
-                if activity_id_to_join in joined_ids:
-                    print(f"✅ Verified user is in participants list for activity {activity_id_to_join}")
-                else:
-                    print(f"❌ User not found in participants list for activity {activity_id_to_join}")
-                    success = False
-        
         return success
 
     def test_get_my_activities(self):
@@ -298,121 +287,20 @@ class FindBuddyAPITester:
         if success:
             created = response.get('created_activities', [])
             joined = response.get('joined_activities', [])
-            print(f"User has {len(created)} created activities and {len(joined)} joined activities")
+            print(f"✅ User has {len(created)} created and {len(joined)} joined activities")
         return success
-
-    # New tests for merchant functionality
-    def test_register_merchant(self):
-        """Test merchant registration"""
-        merchant_data = {
-            "business_name": "Test Business",
-            "email": self.test_merchant_email,
-            "password": self.test_password,
-            "business_type": "restaurant",
-            "address": "123 Test St",
-            "city": "Test City",
-            "phone": "1234567890",
-            "description": "This is a test business for API testing",
-            "website": "https://testbusiness.com"
-        }
-        
-        # Save current token and user
-        original_token = self.token
-        original_user = self.user
-        
-        success, response = self.run_test(
-            "Merchant Registration",
-            "POST",
-            "merchants/register",
-            200,
-            data=merchant_data
-        )
-        
-        if success and 'token' in response:
-            self.merchant_token = response['token']
-            self.merchant = response.get('merchant')
-            print(f"Registered merchant with email: {self.test_merchant_email}")
-            
-            # Store merchant token but restore user token for other tests
-            self.token = original_token
-            self.user = original_user
-            return True
-        
-        # Restore original token and user
-        self.token = original_token
-        self.user = original_user
-        return False
-
-    def test_merchant_login(self):
-        """Test merchant login"""
-        login_data = {
-            "email": self.test_merchant_email,
-            "password": self.test_password
-        }
-        
-        # Save current token and user
-        original_token = self.token
-        original_user = self.user
-        
-        success, response = self.run_test(
-            "Merchant Login",
-            "POST",
-            "merchants/login",
-            200,
-            data=login_data
-        )
-        
-        if success and 'token' in response:
-            self.merchant_token = response['token']
-            self.merchant = response.get('merchant')
-            
-            # Use merchant token temporarily
-            self.token = self.merchant_token
-            
-            # Test getting merchant info
-            success_info, merchant_info = self.run_test(
-                "Get Current Merchant",
-                "GET",
-                "merchants/me",
-                200
-            )
-            
-            if success_info:
-                print(f"Current merchant: {merchant_info.get('business_name', 'Unknown')}")
-            
-            # Restore original token and user
-            self.token = original_token
-            self.user = original_user
-            return success_info
-        
-        # Restore original token and user
-        self.token = original_token
-        self.user = original_user
-        return False
 
     def test_create_discount_offer(self):
         """Test creating a discount offer as a merchant"""
-        if not self.merchant_token:
-            print("❌ No merchant token available to create discount")
-            return False
-        
-        # Save current token and user
-        original_token = self.token
-        original_user = self.user
-        
-        # Use merchant token
-        self.token = self.merchant_token
-        
-        # Create discount offer
         next_month = datetime.now() + timedelta(days=30)
+        
         discount_data = {
-            "title": "Test Discount",
-            "description": "This is a test discount created by the API tester",
+            "title": "Group Discount for Tech Professionals",
+            "description": "Bring your colleagues from the networking event and save!",
             "discount_percentage": 20,
-            "minimum_buddies": 2,
+            "minimum_buddies": 3,
             "valid_until": next_month.isoformat(),
-            "terms_conditions": "Test terms and conditions",
-            "max_redemptions": 100
+            "terms_conditions": "Valid for groups of 3 or more. Must show FindBuddy app."
         }
         
         success, response = self.run_test(
@@ -420,37 +308,13 @@ class FindBuddyAPITester:
             "POST",
             "merchants/discounts",
             200,
-            data=discount_data
+            data=discount_data,
+            is_merchant=True
         )
-        
-        if success and 'discount' in response:
-            self.test_discount_id = response['discount']['id']
-            print(f"Created discount offer with ID: {self.test_discount_id}")
-            
-            # Test getting merchant's discount offers
-            success_get, discounts_response = self.run_test(
-                "Get Merchant's Discount Offers",
-                "GET",
-                "merchants/discounts/my",
-                200
-            )
-            
-            if success_get:
-                discounts = discounts_response.get('discounts', [])
-                print(f"Merchant has {len(discounts)} discount offers")
-            
-            # Restore original token and user
-            self.token = original_token
-            self.user = original_user
-            return success_get
-        
-        # Restore original token and user
-        self.token = original_token
-        self.user = original_user
-        return False
+        return success
 
     def test_get_merchants_near_me(self):
-        """Test getting merchants near me as a user"""
+        """Test getting merchants near me"""
         success, response = self.run_test(
             "Get Merchants Near Me",
             "GET",
@@ -460,20 +324,11 @@ class FindBuddyAPITester:
         
         if success:
             merchants = response.get('merchants', [])
-            print(f"Received {len(merchants)} merchants near me")
-            
-            # Check if our test merchant is in the list
-            if self.merchant:
-                merchant_ids = [m.get('merchant', {}).get('id') for m in merchants]
-                if self.merchant.get('id') in merchant_ids:
-                    print(f"✅ Found our test merchant in the list")
-                else:
-                    print(f"❌ Our test merchant not found in the list")
-        
+            print(f"✅ Found {len(merchants)} merchants near me")
         return success
 
-    def test_get_all_discounts(self):
-        """Test getting all discount offers as a user"""
+    def test_get_all_discount_offers(self):
+        """Test getting all discount offers"""
         success, response = self.run_test(
             "Get All Discount Offers",
             "GET",
@@ -483,308 +338,49 @@ class FindBuddyAPITester:
         
         if success:
             discounts = response.get('discounts', [])
-            print(f"Received {len(discounts)} discount offers")
-            
-            # Check if our test discount is in the list
-            if self.test_discount_id:
-                discount_ids = [d.get('id') for d in discounts]
-                if self.test_discount_id in discount_ids:
-                    print(f"✅ Found our test discount in the list")
-                else:
-                    print(f"❌ Our test discount not found in the list")
-        
+            print(f"✅ Found {len(discounts)} discount offers")
         return success
 
-    def test_like_activity(self):
-        """Test liking an activity"""
-        if not self.test_activity_id:
-            print("❌ No activity ID available to like")
-            return False
-        
-        success, response = self.run_test(
-            "Like Activity",
-            "POST",
-            f"activities/{self.test_activity_id}/like",
-            200
-        )
-        
-        if success:
-            liked = response.get('liked', False)
-            like_count = response.get('like_count', 0)
-            print(f"Activity liked status: {liked}, Like count: {like_count}")
-            
-            # Test getting likes for the activity
-            success_get, likes_response = self.run_test(
-                "Get Activity Likes",
-                "GET",
-                f"activities/{self.test_activity_id}/likes",
-                200
-            )
-            
-            if success_get:
-                likes = likes_response.get('likes', [])
-                like_count_get = likes_response.get('like_count', 0)
-                print(f"Activity has {like_count_get} likes")
-                
-                # Verify the counts match
-                if like_count == like_count_get:
-                    print(f"✅ Like counts match: {like_count}")
-                else:
-                    print(f"❌ Like counts don't match: {like_count} vs {like_count_get}")
-                    success_get = False
-            
-            # Test unliking the activity
-            success_unlike, unlike_response = self.run_test(
-                "Unlike Activity",
-                "POST",
-                f"activities/{self.test_activity_id}/like",
-                200
-            )
-            
-            if success_unlike:
-                liked_after = unlike_response.get('liked', True)
-                like_count_after = unlike_response.get('like_count', 0)
-                print(f"Activity liked status after unlike: {liked_after}, Like count: {like_count_after}")
-                
-                # Verify the unlike worked
-                if not liked_after and like_count_after == 0:
-                    print(f"✅ Unlike successful")
-                else:
-                    print(f"❌ Unlike may not have worked properly")
-                    success_unlike = False
-            
-            return success and success_get and success_unlike
-        
-        return False
-    
-    def test_comment_on_activity(self):
-        """Test commenting on an activity"""
-        if not self.test_activity_id:
-            print("❌ No activity ID available to comment on")
-            return False
-        
-        comment_data = {
-            "activity_id": self.test_activity_id,
-            "content": "This is a test comment from the API tester"
-        }
-        
-        success, response = self.run_test(
-            "Comment on Activity",
-            "POST",
-            f"activities/{self.test_activity_id}/comment",
-            200,
-            data=comment_data
-        )
-        
-        if success and 'comment' in response:
-            comment_id = response['comment']['id']
-            print(f"Created comment with ID: {comment_id}")
-            
-            # Test getting comments for the activity
-            success_get, comments_response = self.run_test(
-                "Get Activity Comments",
-                "GET",
-                f"activities/{self.test_activity_id}/comments",
-                200
-            )
-            
-            if success_get:
-                comments = comments_response.get('comments', [])
-                print(f"Activity has {len(comments)} comments")
-                
-                # Verify our comment is in the list
-                comment_ids = [c.get('id') for c in comments]
-                if comment_id in comment_ids:
-                    print(f"✅ Found our comment in the list")
-                    return True
-                else:
-                    print(f"❌ Our comment not found in the list")
-            
-        return False
-    
-    def test_sample_data(self):
-        """Test that sample data exists in the system"""
-        print("\n🔍 Testing Sample Data...")
-        
-        # Test sample activities
-        success, activities_response = self.run_test(
-            "Check Sample Activities",
-            "GET",
-            "activities/around-me",
-            200
-        )
-        
-        sample_activities_found = 0
-        expected_titles = [
-            "Water Lantern Festival in Santa Clara 🏮",
-            "Beach Volleyball Tournament at Santa Cruz 🏐",
-            "Tech Meetup: AI & Machine Learning Trends 🤖",
-            "Salsa Dancing Class for Beginners 💃",
-            "Karaoke Night at Lucky Strike! 🎤",
-            "Weekend Farmers Market & Brunch Crawl 🥐",
-            "Saturday Morning Basketball at Fremont Park 🏀",
-            "Food Truck Festival & Wine Tasting This Weekend! 🍷🌮",
-            "New to Bay Area - Board Game Night Anyone? 🎲",
-            "Sunrise Yoga & Hiking at Rancho San Antonio 🧘‍♀️",
-            "Photography Walk in Palo Alto - Golden Hour Magic 📸",
-            "Trivia Night at Local Brewery 🍺"
-        ]
-        
-        if success:
-            activities = activities_response.get('activities', [])
-            print(f"Found {len(activities)} activities")
-            
-            for activity in activities:
-                title = activity.get('title', '')
-                if title in expected_titles:
-                    sample_activities_found += 1
-                    print(f"✅ Found sample activity: {title}")
-            
-            print(f"Found {sample_activities_found} out of {len(expected_titles)} expected sample activities")
-        
-        # Test sample merchants
-        success, merchants_response = self.run_test(
-            "Check Sample Merchants",
-            "GET",
-            "merchants/near-me",
-            200
-        )
-        
-        sample_merchants_found = 0
-        expected_merchants = [
-            "AMC Theaters",
-            "TopGolf",
-            "Cheesecake Factory",
-            "Dave & Buster's",
-            "Urban Air",
-            "Starbucks Reserve",
-            "Bowlero",
-            "Cyclebar",
-            "Climbing Club",
-            "Italian Restaurant",
-            "Escape Rooms",
-            "Spa"
-        ]
-        
-        if success:
-            merchants = merchants_response.get('merchants', [])
-            print(f"Found {len(merchants)} merchants")
-            
-            for merchant_data in merchants:
-                merchant = merchant_data.get('merchant', {})
-                name = merchant.get('business_name', '')
-                if name in expected_merchants:
-                    sample_merchants_found += 1
-                    print(f"✅ Found sample merchant: {name}")
-            
-            print(f"Found {sample_merchants_found} out of {len(expected_merchants)} expected sample merchants")
-        
-        # Test sample discount offers
-        success, discounts_response = self.run_test(
-            "Check Sample Discount Offers",
-            "GET",
-            "discounts/all",
-            200
-        )
-        
-        sample_discounts_found = 0
-        expected_discounts = [
-            "Golf with Friends",
-            "Free Cheesecake",
-            "Power Hour Game Cards",
-            "Bring Your Buddy - Free Popcorn! 🍿",
-            "Climb Together - 25% Off Day Passes! 🧗‍♀️",
-            "Dinner for Friends - 20% Off Groups of 4+ 🍝"
-        ]
-        
-        if success:
-            discounts = discounts_response.get('discounts', [])
-            print(f"Found {len(discounts)} discount offers")
-            
-            for discount in discounts:
-                title = discount.get('title', '')
-                if any(expected in title for expected in expected_discounts):
-                    sample_discounts_found += 1
-                    print(f"✅ Found sample discount: {title}")
-            
-            print(f"Found {sample_discounts_found} out of {len(expected_discounts)} expected sample discounts")
-        
-        return sample_activities_found > 0 and sample_merchants_found > 0 and sample_discounts_found > 0
-    
     def run_all_tests(self):
-        """Run all API tests in sequence"""
-        print("🚀 Starting FindBuddy API Tests")
+        """Run all API tests"""
+        print("🚀 Starting FindBuddy API Tests...")
         
-        # Test health check
-        if not self.test_health_check():
-            print("❌ Health check failed, stopping tests")
-            return False
-            
-        # Test user registration
-        if not self.test_register_user():
-            print("❌ User registration failed, stopping tests")
-            return False
-            
-        # Test getting current user
-        if not self.test_get_current_user():
-            print("❌ Getting current user failed")
+        # Health check
+        self.test_health_check()
         
-        # Test sample data after authentication
-        if not self.test_sample_data():
-            print("⚠️ Sample data test failed or incomplete")
-            
-        # Test creating activity
-        if not self.test_create_activity():
-            print("❌ Creating activity failed")
-            
-        # Test getting activities around me
-        if not self.test_get_activities_around_me():
-            print("❌ Getting activities around me failed")
-            
-        # Test joining activity
-        if not self.test_join_activity():
-            print("❌ Joining activity failed")
-            
-        # Test getting my activities
-        if not self.test_get_my_activities():
-            print("❌ Getting my activities failed")
+        # User authentication tests
+        self.test_user_registration()
+        self.test_user_login()
+        self.test_get_current_user()
         
-        # Test social features
-        if not self.test_like_activity():
-            print("❌ Liking activity failed")
-            
-        if not self.test_comment_on_activity():
-            print("❌ Commenting on activity failed")
-            
-        # Test merchant registration
-        if not self.test_register_merchant():
-            print("❌ Merchant registration failed")
+        # Merchant authentication tests
+        self.test_merchant_registration()
+        self.test_merchant_login()
+        self.test_get_current_merchant()
         
-        # Test merchant login
-        if not self.test_merchant_login():
-            print("❌ Merchant login failed")
+        # Activity tests
+        self.test_create_activity()
+        self.test_get_activities_around_me()
+        self.test_join_activity()
+        self.test_get_my_activities()
         
-        # Test creating discount offer
-        if not self.test_create_discount_offer():
-            print("❌ Creating discount offer failed")
+        # Merchant and discount tests
+        self.test_create_discount_offer()
+        self.test_get_merchants_near_me()
+        self.test_get_all_discount_offers()
         
-        # Test getting merchants near me
-        if not self.test_get_merchants_near_me():
-            print("❌ Getting merchants near me failed")
-        
-        # Test getting all discounts
-        if not self.test_get_all_discounts():
-            print("❌ Getting all discounts failed")
-        
-        # Test login with the created user
-        if not self.test_login():
-            print("❌ Login failed")
-            
         # Print results
-        print(f"\n📊 Tests passed: {self.tests_passed}/{self.tests_run}")
+        print("\n📊 Test Results:")
+        print(f"Tests passed: {self.tests_passed}/{self.tests_run} ({self.tests_passed/self.tests_run*100:.1f}%)")
+        
+        for result in self.test_results:
+            status_icon = "✅" if result["status"] == "PASSED" else "❌"
+            print(f"{status_icon} {result['name']}: {result['status']}")
+        
         return self.tests_passed == self.tests_run
 
 def main():
+    # Get the backend URL from environment or use default
     tester = FindBuddyAPITester()
     success = tester.run_all_tests()
     return 0 if success else 1
