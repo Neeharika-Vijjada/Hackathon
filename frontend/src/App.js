@@ -103,6 +103,23 @@ const Header = () => {
               {userType === 'merchant' ? 'Business Partner Dashboard' : 'Find your activity companions'}
             </p>
           </div>
+
+          {/* Search Bar */}
+          {currentEntity && userType === 'user' && (
+            <div className="flex-1 max-w-lg mx-8">
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <span className="text-gray-400">🔍</span>
+                </div>
+                <input
+                  type="text"
+                  placeholder="Search activities, interests, or locations..."
+                  className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                />
+              </div>
+            </div>
+          )}
+
           {currentEntity && (
             <div className="flex items-center space-x-4">
               <span className="text-gray-700">
