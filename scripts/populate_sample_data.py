@@ -726,6 +726,112 @@ async def create_sample_discount_offers(merchants):
             "current_redemptions": 8,
             "active": True,
             "created_at": datetime.utcnow()
+        },
+        # Additional new offers to make merchant page more engaging
+        {
+            "id": str(uuid.uuid4()),
+            "merchant_id": merchants[0]["id"],  # AMC Third Offer
+            "merchant_name": merchants[0]["business_name"],
+            "title": "Student Movie Night - 50% Off Tuesday Tickets! 🎓",
+            "description": "Students unite! Every Tuesday, bring your study buddies and get 50% off all movie tickets. Perfect for unwinding after a long day of classes!",
+            "discount_percentage": 50,
+            "minimum_buddies": 2,
+            "valid_until": base_date + timedelta(days=120),
+            "terms_conditions": "Valid Tuesdays only. Must show valid student ID. Minimum 2 tickets per transaction.",
+            "max_redemptions": 400,
+            "current_redemptions": 156,
+            "active": True,
+            "created_at": datetime.utcnow()
+        },
+        {
+            "id": str(uuid.uuid4()),
+            "merchant_id": merchants[5]["id"] if len(merchants) > 5 else merchants[0]["id"],  # TopGolf Second Offer
+            "merchant_name": merchants[5]["business_name"] if len(merchants) > 5 else "TopGolf San Jose",
+            "title": "Corporate Team Building - 25% Off Private Bays! ⛳",
+            "description": "Build stronger teams with TopGolf! Corporate groups of 8+ get 25% off private bay rentals. Includes team challenges and networking opportunities.",
+            "discount_percentage": 25,
+            "minimum_buddies": 8,
+            "valid_until": base_date + timedelta(days=180),
+            "terms_conditions": "Valid for corporate bookings only. Advance reservation required. Includes 2-hour bay rental and team activities.",
+            "max_redemptions": 50,
+            "current_redemptions": 12,
+            "active": True,
+            "created_at": datetime.utcnow()
+        },
+        {
+            "id": str(uuid.uuid4()),
+            "merchant_id": merchants[6]["id"] if len(merchants) > 6 else merchants[1]["id"],  # Cheesecake Factory Second Offer
+            "merchant_name": merchants[6]["business_name"] if len(merchants) > 6 else "The Cheesecake Factory",
+            "title": "Happy Hour Buddies - Buy 2 Get 1 Free Appetizers! 🍽️",
+            "description": "Happy hour just got happier! Groups of 3+ ordering appetizers get the third one free. Perfect for after-work meetups with colleagues!",
+            "discount_percentage": 33,
+            "minimum_buddies": 3,
+            "valid_until": base_date + timedelta(days=60),
+            "terms_conditions": "Valid Monday-Friday 3-6 PM only. Dine-in only. Free appetizer must be equal or lesser value.",
+            "max_redemptions": 300,
+            "current_redemptions": 89,
+            "active": True,
+            "created_at": datetime.utcnow()
+        },
+        {
+            "id": str(uuid.uuid4()),
+            "merchant_id": merchants[7]["id"] if len(merchants) > 7 else merchants[2]["id"],  # Dave & Buster's Second Offer
+            "merchant_name": merchants[7]["business_name"] if len(merchants) > 7 else "Dave & Buster's",
+            "title": "Birthday Party Package - 20% Off Group Celebrations! 🎂",
+            "description": "Make birthdays legendary! Groups celebrating birthdays get 20% off party packages including games, food, and reserved seating.",
+            "discount_percentage": 20,
+            "minimum_buddies": 6,
+            "valid_until": base_date + timedelta(days=365),
+            "terms_conditions": "Valid for birthday celebrations only. Must mention birthday when booking. Includes party host and decorations.",
+            "max_redemptions": 100,
+            "current_redemptions": 23,
+            "active": True,
+            "created_at": datetime.utcnow()
+        },
+        {
+            "id": str(uuid.uuid4()),
+            "merchant_id": merchants[8]["id"] if len(merchants) > 8 else merchants[3]["id"],  # Urban Air Second Offer
+            "merchant_name": merchants[8]["business_name"] if len(merchants) > 8 else "Urban Air Adventure Park",
+            "title": "Weekend Warriors - 30% Off Saturday Adventures! 🤸‍♂️",
+            "description": "Weekend adventure squad assemble! Saturday groups of 5+ get 30% off all adventure packages. Perfect for active friend groups!",
+            "discount_percentage": 30,
+            "minimum_buddies": 5,
+            "valid_until": base_date + timedelta(days=90),
+            "terms_conditions": "Valid Saturdays only. Groups of 5-15 people. Includes full adventure park access and safety equipment.",
+            "max_redemptions": 75,
+            "current_redemptions": 34,
+            "active": True,
+            "created_at": datetime.utcnow()
+        },
+        {
+            "id": str(uuid.uuid4()),
+            "merchant_id": merchants[9]["id"] if len(merchants) > 9 else merchants[4]["id"],  # Starbucks Reserve Second Offer
+            "merchant_name": merchants[9]["business_name"] if len(merchants) > 9 else "Starbucks Reserve",
+            "title": "Study Group Special - Free Wifi + 15% Off! 📚",
+            "description": "Study buddies welcome! Groups studying together get 15% off all food and drinks plus priority seating in our quiet zones.",
+            "discount_percentage": 15,
+            "minimum_buddies": 3,
+            "valid_until": base_date + timedelta(days=120),
+            "terms_conditions": "Valid for study groups only. Must stay minimum 2 hours. Quiet zones available first-come-first-served.",
+            "max_redemptions": 200,
+            "current_redemptions": 67,
+            "active": True,
+            "created_at": datetime.utcnow()
+        },
+        {
+            "id": str(uuid.uuid4()),
+            "merchant_id": merchants[10]["id"] if len(merchants) > 10 else merchants[0]["id"],  # Bowlero Second Offer
+            "merchant_name": merchants[10]["business_name"] if len(merchants) > 10 else "Bowlero Fremont",
+            "title": "League Night - Join with Friends & Save 40%! 🎳",
+            "description": "Start a bowling league with your crew! Groups of 4+ joining our weekly leagues get 40% off league fees for the first month.",
+            "discount_percentage": 40,
+            "minimum_buddies": 4,
+            "valid_until": base_date + timedelta(days=30),
+            "terms_conditions": "Valid for new league signups only. Minimum 4-week commitment. Includes shoes and weekly league play.",
+            "max_redemptions": 25,
+            "current_redemptions": 8,
+            "active": True,
+            "created_at": datetime.utcnow()
         }
     ]
     
