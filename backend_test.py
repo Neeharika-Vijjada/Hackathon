@@ -653,6 +653,13 @@ class FindBuddyAPITester:
         sample_merchants_found = 0
         expected_merchants = [
             "AMC Theaters",
+            "TopGolf",
+            "Cheesecake Factory",
+            "Dave & Buster's",
+            "Urban Air",
+            "Starbucks Reserve",
+            "Bowlero",
+            "Cyclebar",
             "Climbing Club",
             "Italian Restaurant",
             "Escape Rooms",
