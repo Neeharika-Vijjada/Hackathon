@@ -616,12 +616,18 @@ class FindBuddyAPITester:
         
         sample_activities_found = 0
         expected_titles = [
-            "Water Lantern Festival in Santa Clara - Looking for Company! 🏮",
+            "Water Lantern Festival in Santa Clara 🏮",
+            "Beach Volleyball Tournament at Santa Cruz 🏐",
+            "Tech Meetup: AI & Machine Learning Trends 🤖",
+            "Salsa Dancing Class for Beginners 💃",
+            "Karaoke Night at Lucky Strike! 🎤",
+            "Weekend Farmers Market & Brunch Crawl 🥐",
             "Saturday Morning Basketball at Fremont Park 🏀",
             "Food Truck Festival & Wine Tasting This Weekend! 🍷🌮",
             "New to Bay Area - Board Game Night Anyone? 🎲",
             "Sunrise Yoga & Hiking at Rancho San Antonio 🧘‍♀️",
-            "Photography Walk in Palo Alto - Golden Hour Magic 📸"
+            "Photography Walk in Palo Alto - Golden Hour Magic 📸",
+            "Trivia Night at Local Brewery 🍺"
         ]
         
         if success:
