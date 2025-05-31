@@ -564,6 +564,7 @@ class FindBuddyAPITester:
             return False
         
         comment_data = {
+            "activity_id": self.test_activity_id,
             "content": "This is a test comment from the API tester"
         }
         
