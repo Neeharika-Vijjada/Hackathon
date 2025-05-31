@@ -782,9 +782,9 @@ const ActivityCard = ({ activity, onJoin, showJoinButton = true, isOwn = false }
           {showJoinButton && !isOwn && (
             <button
               onClick={() => onJoin(activity.id)}
-              className="ml-auto bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium py-2 px-4 rounded-md transition-colors"
+              className="ml-auto bg-gradient-to-r from-green-400 to-blue-500 hover:from-green-500 hover:to-blue-600 text-white text-sm font-bold py-2 px-6 rounded-full transition-all duration-300 transform hover:scale-105 shadow-lg"
             >
-              Join Activity
+              🤝 Buddy Up!
             </button>
           )}
         </div>
