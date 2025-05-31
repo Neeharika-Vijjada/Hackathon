@@ -598,7 +598,91 @@ async def get_all_discount_offers(
         "total_count": len(discounts_data)
     }
 
-# Basic messaging
+# Social Features - Comments and Likes
+@api_router.post("/activities/{activity_id}/comment")
+async def add_comment(activity_id: str, comment_data: CommentCreate, current_user: User = Depends(get_current_user)):
+    # Verify activity exists
+    activity = await db.activities.find_one({"id": activity_id})
+    if not activity:
+        raise HTTPException(status_code=404, detail="Activity not found")
+    
+    comment_id = str(uuid.uuid4())
+    comment_doc = {
+        "id": comment_id,
+        "activity_id": activity_id,
+        "user_id": current_user.id,
+        "user_name": current_user.name,
+        "content": comment_data.content,
+        "created_at": datetime.utcnow()
+    }
+    
+    await db.activity_comments.insert_one(comment_doc)
+    
+    return {
+        "message": "Comment added successfully",
+        "comment": ActivityComment(**comment_doc)
+    }
+
+@api_router.get("/activities/{activity_id}/comments")
+async def get_activity_comments(activity_id: str):
+    comments_cursor = db.activity_comments.find({"activity_id": activity_id}).sort("created_at", 1)
+    comments_data = await comments_cursor.to_list(1000)
+    
+    return {
+        "comments": [ActivityComment(**comment) for comment in comments_data],
+        "total_count": len(comments_data)
+    }
+
+@api_router.post("/activities/{activity_id}/like")
+async def toggle_like(activity_id: str, current_user: User = Depends(get_current_user)):
+    # Verify activity exists
+    activity = await db.activities.find_one({"id": activity_id})
+    if not activity:
+        raise HTTPException(status_code=404, detail="Activity not found")
+    
+    # Check if user already liked this activity
+    existing_like = await db.activity_likes.find_one({
+        "activity_id": activity_id,
+        "user_id": current_user.id
+    })
+    
+    if existing_like:
+        # Unlike - remove the like
+        await db.activity_likes.delete_one({"id": existing_like["id"]})
+        message = "Activity unliked"
+        liked = False
+    else:
+        # Like - add a like
+        like_id = str(uuid.uuid4())
+        like_doc = {
+            "id": like_id,
+            "activity_id": activity_id,
+            "user_id": current_user.id,
+            "created_at": datetime.utcnow()
+        }
+        await db.activity_likes.insert_one(like_doc)
+        message = "Activity liked"
+        liked = True
+    
+    # Get updated like count
+    like_count = await db.activity_likes.count_documents({"activity_id": activity_id})
+    
+    return {
+        "message": message,
+        "liked": liked,
+        "like_count": like_count
+    }
+
+@api_router.get("/activities/{activity_id}/likes")
+async def get_activity_likes(activity_id: str):
+    like_count = await db.activity_likes.count_documents({"activity_id": activity_id})
+    likes_cursor = db.activity_likes.find({"activity_id": activity_id}).sort("created_at", -1)
+    likes_data = await likes_cursor.to_list(1000)
+    
+    return {
+        "likes": [ActivityLike(**like) for like in likes_data],
+        "like_count": like_count
+    }
 @api_router.post("/messages")
 async def send_message(message_data: MessageCreate, current_user: User = Depends(get_current_user)):
     message_id = str(uuid.uuid4())
