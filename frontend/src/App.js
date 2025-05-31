@@ -1108,11 +1108,10 @@ const UserDashboard = () => {
   const fetchActivitiesAroundMe = async () => {
     setLoading(true);
     try {
-      let url = `${API}/activities/around-me`;
-      if (selectedLocationBuddies) {
-        url += `?city_filter=${encodeURIComponent(selectedLocationBuddies)}`;
-      }
-      const response = await axios.get(url);
+      const params = locationFilter && locationFilter !== user.city 
+        ? { city_filter: locationFilter } 
+        : {};
+      const response = await axios.get(`${API}/activities/around-me`, { params });
       setActivitiesAroundMe(response.data.activities);
     } catch (error) {
       console.error('Error fetching activities around me:', error);
