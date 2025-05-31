@@ -152,6 +152,24 @@ class Activity(BaseModel):
 class JoinActivityRequest(BaseModel):
     activity_id: str
 
+class ActivityComment(BaseModel):
+    id: str
+    activity_id: str
+    user_id: str
+    user_name: str
+    content: str
+    created_at: datetime
+
+class CommentCreate(BaseModel):
+    activity_id: str
+    content: str
+
+class ActivityLike(BaseModel):
+    id: str
+    activity_id: str
+    user_id: str
+    created_at: datetime
+
 class MessageCreate(BaseModel):
     recipient_id: str
     content: str
