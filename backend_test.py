@@ -232,9 +232,9 @@ class FindBuddyAPITester:
         return False
 
     def test_get_activities_around_me(self):
-        """Test getting activities around me"""
+        """Test getting activities around me (now called 'Find Buddies')"""
         success, response = self.run_test(
-            "Get Activities Around Me",
+            "Get Activities Around Me (Find Buddies)",
             "GET",
             "activities/around-me",
             200
@@ -251,6 +251,22 @@ class FindBuddyAPITester:
             else:
                 print("❌ No professional activities found")
                 return False
+        return False
+        
+    def test_activities_with_city_filter(self):
+        """Test getting activities with city filter"""
+        success, response = self.run_test(
+            "Get Activities with City Filter",
+            "GET",
+            "activities/around-me?city_filter=Test%20City",
+            200
+        )
+        
+        if success:
+            activities = response.get('activities', [])
+            city = response.get('city', '')
+            print(f"✅ Found {len(activities)} activities in {city}")
+            return True
         return False
 
     def test_join_activity(self):
