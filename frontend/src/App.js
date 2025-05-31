@@ -1081,17 +1081,9 @@ const UserDashboard = () => {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('find-buddies');
   const [activitiesAroundMe, setActivitiesAroundMe] = useState([]);
-  const [filteredActivities, setFilteredActivities] = useState([]);
   const [merchants, setMerchants] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
-  
-  // Filter states
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedInterests, setSelectedInterests] = useState([]);
-  const [selectedCity, setSelectedCity] = useState('');
-  const [availableInterests, setAvailableInterests] = useState([]);
-  const [availableCities, setAvailableCities] = useState([]);
 
   useEffect(() => {
     if (activeTab === 'find-buddies') {
@@ -1101,52 +1093,11 @@ const UserDashboard = () => {
     }
   }, [activeTab]);
 
-  useEffect(() => {
-    // Apply filters to activities
-    let filtered = activitiesAroundMe;
-
-    if (searchTerm) {
-      filtered = filtered.filter(activity => 
-        activity.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        activity.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        activity.category.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    }
-
-    if (selectedInterests.length > 0) {
-      filtered = filtered.filter(activity => 
-        activity.interests.some(interest => 
-          selectedInterests.includes(interest.toLowerCase())
-        )
-      );
-    }
-
-    if (selectedCity) {
-      filtered = filtered.filter(activity => 
-        activity.city.toLowerCase().includes(selectedCity.toLowerCase())
-      );
-    }
-
-    setFilteredActivities(filtered);
-  }, [activitiesAroundMe, searchTerm, selectedInterests, selectedCity]);
-
   const fetchActivitiesAroundMe = async () => {
     setLoading(true);
     try {
       const response = await axios.get(`${API}/activities/around-me`);
       setActivitiesAroundMe(response.data.activities);
-      
-      // Extract unique interests and cities for filters
-      const interests = new Set();
-      const cities = new Set();
-      
-      response.data.activities.forEach(activity => {
-        activity.interests.forEach(interest => interests.add(interest.toLowerCase()));
-        cities.add(activity.city);
-      });
-      
-      setAvailableInterests(Array.from(interests));
-      setAvailableCities(Array.from(cities));
     } catch (error) {
       console.error('Error fetching activities around me:', error);
     } finally {
@@ -1169,7 +1120,7 @@ const UserDashboard = () => {
   const handleJoinActivity = async (activityId) => {
     try {
       await axios.post(`${API}/activities/join`, { activity_id: activityId });
-      alert('Successfully joined activity!');
+      alert('🎉 Successfully buddied up! Check your activities in the sidebar.');
       fetchActivitiesAroundMe();
     } catch (error) {
       alert(error.response?.data?.detail || 'Error joining activity');
@@ -1181,25 +1132,11 @@ const UserDashboard = () => {
     if (activeTab === 'find-buddies') {
       fetchActivitiesAroundMe();
     }
-    alert('Activity created successfully!');
-  };
-
-  const handleInterestToggle = (interest) => {
-    setSelectedInterests(prev => 
-      prev.includes(interest) 
-        ? prev.filter(i => i !== interest)
-        : [...prev, interest]
-    );
-  };
-
-  const clearFilters = () => {
-    setSearchTerm('');
-    setSelectedInterests([]);
-    setSelectedCity('');
+    alert('🎊 Activity created successfully! Let the buddy finding begin!');
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 pt-20">
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-orange-50 pt-20">
       <Header />
       
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -1212,32 +1149,32 @@ const UserDashboard = () => {
           {/* Main Content */}
           <div className="flex-1">
             {/* Navigation Tabs */}
-            <div className="bg-white rounded-lg shadow-md mb-8 sticky top-24 z-10">
+            <div className="bg-white rounded-2xl shadow-lg mb-8 sticky top-24 z-10 overflow-hidden">
               <div className="border-b border-gray-200">
                 <nav className="flex">
                   <button
                     onClick={() => setActiveTab('find-buddies')}
-                    className={`flex-1 py-4 px-6 text-center border-b-2 font-medium text-sm transition-colors ${
+                    className={`flex-1 py-4 px-6 text-center border-b-2 font-bold text-sm transition-all duration-300 ${
                       activeTab === 'find-buddies'
-                        ? 'border-indigo-500 text-indigo-600 bg-indigo-50'
-                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                        ? 'border-pink-500 text-pink-600 bg-gradient-to-r from-pink-50 to-purple-50'
+                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 hover:bg-gray-50'
                     }`}
                   >
                     <div className="flex items-center justify-center space-x-2">
-                      <span>👥</span>
+                      <span className="text-lg">👫</span>
                       <span>Find Buddies</span>
                     </div>
                   </button>
                   <button
                     onClick={() => setActiveTab('find-discounts')}
-                    className={`flex-1 py-4 px-6 text-center border-b-2 font-medium text-sm transition-colors ${
+                    className={`flex-1 py-4 px-6 text-center border-b-2 font-bold text-sm transition-all duration-300 ${
                       activeTab === 'find-discounts'
-                        ? 'border-indigo-500 text-indigo-600 bg-indigo-50'
-                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                        ? 'border-orange-500 text-orange-600 bg-gradient-to-r from-orange-50 to-yellow-50'
+                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 hover:bg-gray-50'
                     }`}
                   >
                     <div className="flex items-center justify-center space-x-2">
-                      <span>💰</span>
+                      <span className="text-lg">🎁</span>
                       <span>Find Discounts</span>
                     </div>
                   </button>
@@ -1245,74 +1182,14 @@ const UserDashboard = () => {
               </div>
             </div>
 
-            {/* Filters for Find Buddies Tab */}
-            {activeTab === 'find-buddies' && (
-              <div className="bg-white rounded-lg shadow-md p-4 mb-6">
-                <div className="flex flex-wrap gap-4">
-                  {/* Search Input */}
-                  <div className="flex-1 min-w-64">
-                    <input
-                      type="text"
-                      placeholder="Search activities..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                    />
-                  </div>
-
-                  {/* City Filter */}
-                  <div className="min-w-48">
-                    <select
-                      value={selectedCity}
-                      onChange={(e) => setSelectedCity(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                    >
-                      <option value="">All Cities</option>
-                      {availableCities.map((city, index) => (
-                        <option key={index} value={city}>{city}</option>
-                      ))}
-                    </select>
-                  </div>
-
-                  {/* Clear Filters */}
-                  <button
-                    onClick={clearFilters}
-                    className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-md transition-colors"
-                  >
-                    Clear Filters
-                  </button>
-                </div>
-
-                {/* Interest Tags */}
-                {availableInterests.length > 0 && (
-                  <div className="mt-4">
-                    <p className="text-sm text-gray-600 mb-2">Filter by interests:</p>
-                    <div className="flex flex-wrap gap-2">
-                      {availableInterests.slice(0, 10).map((interest, index) => (
-                        <button
-                          key={index}
-                          onClick={() => handleInterestToggle(interest)}
-                          className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
-                            selectedInterests.includes(interest)
-                              ? 'bg-indigo-500 text-white'
-                              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                          }`}
-                        >
-                          {interest}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-
             {/* Improved Merchant Banner */}
             {activeTab === 'find-discounts' && (
-              <div className="mb-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg p-6 text-white shadow-lg">
-                <div className="text-center">
-                  <h2 className="text-2xl font-bold mb-2">👥 Bring Your Buddy & Enjoy Extra Discounts!</h2>
-                  <p className="text-lg opacity-90">
+              <div className="mb-8 bg-gradient-to-r from-orange-400 via-pink-500 to-purple-600 rounded-2xl p-8 text-white shadow-xl relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-white bg-opacity-10 rounded-full -mr-16 -mt-16"></div>
+                <div className="absolute bottom-0 left-0 w-24 h-24 bg-white bg-opacity-10 rounded-full -ml-12 -mb-12"></div>
+                <div className="text-center relative z-10">
+                  <h2 className="text-3xl font-bold mb-3">👫 Bring Your Buddy & Enjoy Extra Discounts!</h2>
+                  <p className="text-xl opacity-95">
                     Save more when you visit with friends - exclusive buddy discounts await!
                   </p>
                 </div>
@@ -1321,38 +1198,37 @@ const UserDashboard = () => {
 
             {/* Content */}
             {loading ? (
-              <div className="text-center py-12">
-                <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
-                <p className="mt-4 text-gray-600">Loading...</p>
+              <div className="text-center py-16">
+                <div className="inline-block animate-spin rounded-full h-16 w-16 border-b-4 border-purple-500"></div>
+                <p className="mt-4 text-gray-600 text-lg">Finding awesome buddies...</p>
               </div>
             ) : (
               <div>
                 {activeTab === 'find-buddies' && (
                   <div>
-                    <div className="flex justify-between items-center mb-6">
-                      <h3 className="text-2xl font-bold text-gray-900">Professional Network Activities</h3>
-                      <span className="text-sm text-gray-500">
-                        {filteredActivities.length} of {activitiesAroundMe.length} activities
-                      </span>
+                    <div className="flex justify-between items-center mb-8">
+                      <div>
+                        <h3 className="text-3xl font-bold text-gray-900 flex items-center">
+                          <span className="mr-3">🎪</span>
+                          Activities Near You
+                        </h3>
+                        <p className="text-gray-600 mt-2">Connect with like-minded people for amazing experiences!</p>
+                      </div>
+                      <div className="bg-white rounded-full px-4 py-2 shadow-lg border-2 border-purple-200">
+                        <span className="text-sm font-bold text-purple-600">
+                          {activitiesAroundMe.length} activities
+                        </span>
+                      </div>
                     </div>
-                    {filteredActivities.length === 0 ? (
-                      <div className="text-center py-12 bg-white rounded-lg shadow-md">
-                        <p className="text-gray-600 text-lg">
-                          {activitiesAroundMe.length === 0 
-                            ? "No activities found in your area." 
-                            : "No activities match your current filters."
-                          }
-                        </p>
-                        <p className="text-gray-500">
-                          {activitiesAroundMe.length === 0 
-                            ? "Be the first to create a professional networking activity!" 
-                            : "Try adjusting your search criteria."
-                          }
-                        </p>
+                    {activitiesAroundMe.length === 0 ? (
+                      <div className="text-center py-16 bg-white rounded-2xl shadow-lg border-2 border-dashed border-gray-300">
+                        <div className="text-6xl mb-4">🎭</div>
+                        <p className="text-gray-600 text-xl font-medium">No activities found in your area.</p>
+                        <p className="text-gray-500 mt-2">Be the first to create an amazing activity!</p>
                       </div>
                     ) : (
                       <div className="space-y-6">
-                        {filteredActivities.map((activity) => (
+                        {activitiesAroundMe.map((activity) => (
                           <ActivityCard
                             key={activity.id}
                             activity={activity}
@@ -1367,14 +1243,25 @@ const UserDashboard = () => {
 
                 {activeTab === 'find-discounts' && (
                   <div>
-                    <div className="flex justify-between items-center mb-6">
-                      <h3 className="text-2xl font-bold text-gray-900">Buddy Discounts in {user.city}</h3>
-                      <span className="text-sm text-gray-500">{merchants.length} businesses found</span>
+                    <div className="flex justify-between items-center mb-8">
+                      <div>
+                        <h3 className="text-3xl font-bold text-gray-900 flex items-center">
+                          <span className="mr-3">🛍️</span>
+                          Buddy Discounts in {user.city}
+                        </h3>
+                        <p className="text-gray-600 mt-2">Amazing deals when you visit with your buddies!</p>
+                      </div>
+                      <div className="bg-white rounded-full px-4 py-2 shadow-lg border-2 border-orange-200">
+                        <span className="text-sm font-bold text-orange-600">
+                          {merchants.length} businesses
+                        </span>
+                      </div>
                     </div>
                     {merchants.length === 0 ? (
-                      <div className="text-center py-12 bg-white rounded-lg shadow-md">
-                        <p className="text-gray-600 text-lg">No merchant partners found in your area.</p>
-                        <p className="text-gray-500">Check back soon for buddy discounts!</p>
+                      <div className="text-center py-16 bg-white rounded-2xl shadow-lg border-2 border-dashed border-gray-300">
+                        <div className="text-6xl mb-4">🏪</div>
+                        <p className="text-gray-600 text-xl font-medium">No merchant partners found in your area.</p>
+                        <p className="text-gray-500 mt-2">Check back soon for buddy discounts!</p>
                       </div>
                     ) : (
                       <div className="space-y-6">
