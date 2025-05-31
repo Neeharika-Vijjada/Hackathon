@@ -703,10 +703,6 @@ class FindBuddyAPITester:
         if not self.test_health_check():
             print("❌ Health check failed, stopping tests")
             return False
-        
-        # Test sample data
-        if not self.test_sample_data():
-            print("⚠️ Sample data test failed or incomplete")
             
         # Test user registration
         if not self.test_register_user():
@@ -716,6 +712,10 @@ class FindBuddyAPITester:
         # Test getting current user
         if not self.test_get_current_user():
             print("❌ Getting current user failed")
+        
+        # Test sample data after authentication
+        if not self.test_sample_data():
+            print("⚠️ Sample data test failed or incomplete")
             
         # Test creating activity
         if not self.test_create_activity():
@@ -764,6 +764,9 @@ class FindBuddyAPITester:
         if not self.test_login():
             print("❌ Login failed")
             
+        # Print results
+        print(f"\n📊 Tests passed: {self.tests_passed}/{self.tests_run}")
+        return self.tests_passed == self.tests_run
         # Print results
         print(f"\n📊 Tests passed: {self.tests_passed}/{self.tests_run}")
         return self.tests_passed == self.tests_run
