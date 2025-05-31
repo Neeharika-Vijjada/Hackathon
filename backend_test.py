@@ -208,8 +208,9 @@ class FindBuddyAPITester:
             self.user = original_user
             return False
         
-        # Store second user's token
+        # Store second user's token and ID
         second_user_token = self.token
+        second_user_id = response.get('user', {}).get('id')
         
         # Restore original user to create a new activity
         self.token = original_token
@@ -262,6 +263,25 @@ class FindBuddyAPITester:
         
         if success:
             print(f"Successfully joined activity: {activity_id_to_join}")
+            
+            # Verify the user is now in the participants list
+            # Get my activities to verify
+            success, my_activities_response = self.run_test(
+                "Verify Joined Activities",
+                "GET",
+                "activities/my",
+                200
+            )
+            
+            if success:
+                joined_activities = my_activities_response.get('joined_activities', [])
+                joined_ids = [act.get('id') for act in joined_activities]
+                
+                if activity_id_to_join in joined_ids:
+                    print(f"✅ Verified user is in participants list for activity {activity_id_to_join}")
+                else:
+                    print(f"❌ User not found in participants list for activity {activity_id_to_join}")
+                    success = False
         
         # Restore original token and user
         self.token = original_token
