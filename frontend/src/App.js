@@ -1091,6 +1091,7 @@ const UserDashboard = () => {
   const [merchants, setMerchants] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [locationFilter, setLocationFilter] = useState(user?.city || '');
   
   // Location filter states for both tabs
   const [selectedLocationBuddies, setSelectedLocationBuddies] = useState('');
